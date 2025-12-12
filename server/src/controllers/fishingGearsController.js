@@ -1,5 +1,10 @@
 import FishingGearModel from "../models/fishingGearsModel.js";
 
+/*
+    Controller: Mengambil seluruh data fishing gear.
+    - Model mengambil data apa adanya dari tabel.
+    - Kegagalan query diperlakukan sebagai 500.
+*/
 export const getAllFishingGear = async (req, res) => {
     try {
         const data = await FishingGearModel.getAll();
@@ -10,13 +15,15 @@ export const getAllFishingGear = async (req, res) => {
     }
 };
 
+/*
+    Controller: Membuat fishing gear baru.
+    - Mengambil field yang relevan saja dari body.
+    - Objek data dibangun ulang supaya tidak ada field liar yang ikut masuk DB.
+*/
 export const createFishingGear = async (req, res) => {
     try {
-        // Ambil data dari body
-        // Kita destructuring agar aman & memastikan key-nya sesuai kolom DB baru (Inggris)
         const { name, image, description, purchase_link } = req.body;
-        
-        // Buat objek baru yang bersih untuk dikirim ke Model
+
         const data = {
             name,
             image,
@@ -36,13 +43,17 @@ export const createFishingGear = async (req, res) => {
     }
 };
 
+/*
+    Controller: Mengupdate fishing gear tertentu.
+    - Params.id digunakan sebagai primary key target.
+    - Field valid disalin ulang untuk menjaga konsistensi bentuk data.
+    - Jika affectedRows 0, berarti ID tidak ada di database.
+*/
 export const updateFishingGear = async (req, res) => {
     try {
         const { id } = req.params;
-        
-        // Sama seperti create, pastikan key sesuai kolom DB (Inggris)
         const { name, image, description, purchase_link } = req.body;
-        
+
         const data = {
             name,
             image,
@@ -63,6 +74,10 @@ export const updateFishingGear = async (req, res) => {
     }
 };
 
+/*
+    Controller: Menghapus fishing gear berdasarkan ID.
+    - Mengembalikan 404 jika target tidak ditemukan.
+*/
 export const deleteFishingGear = async (req, res) => {
     try {
         const { id } = req.params;

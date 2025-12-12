@@ -1,5 +1,9 @@
 import BaitModel from "../models/baitsModel.js";
 
+/**
+ * GET /baits
+ * Mengambil semua bait dari database.
+ */
 export const getAllBaits = async (req, res) => {
     try {
         const data = await BaitModel.getAll();
@@ -10,9 +14,13 @@ export const getAllBaits = async (req, res) => {
     }
 };
 
+/**
+ * POST /baits
+ * Membuat bait baru berdasarkan body request.
+ */
 export const createBait = async (req, res) => {
     try {
-        // Destructuring body agar aman & sesuai kolom DB
+        // Ambil field sesuai struktur tabel
         const { name, image, description, purchase_link } = req.body;
         
         const data = {
@@ -25,8 +33,8 @@ export const createBait = async (req, res) => {
         const result = await BaitModel.create(data);
         
         res.json({ 
-            message: "Bait created successfully", 
-            id: result.insertId 
+            message: "Bait created successfully",
+            id: result.insertId
         });
     } catch (error) {
         console.error("Error creating bait:", error);
@@ -34,6 +42,10 @@ export const createBait = async (req, res) => {
     }
 };
 
+/**
+ * PUT /baits/:id
+ * Mengupdate bait berdasarkan ID dari URL params.
+ */
 export const updateBait = async (req, res) => {
     try {
         const { id } = req.params;
@@ -48,6 +60,7 @@ export const updateBait = async (req, res) => {
         
         const result = await BaitModel.update(data, id);
 
+        // Cek apakah ID ada di database
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Bait not found" });
         }
@@ -59,11 +72,16 @@ export const updateBait = async (req, res) => {
     }
 };
 
+/**
+ * DELETE /baits/:id
+ * Menghapus bait berdasarkan ID.
+ */
 export const deleteBait = async (req, res) => {
     try {
         const { id } = req.params;
         const result = await BaitModel.delete(id);
 
+        // Kalau affectedRows = 0 berarti ID-nya tidak valid
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Bait not found" });
         }

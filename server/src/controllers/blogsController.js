@@ -1,5 +1,10 @@
 import BlogModel from "../models/blogsModel.js";
 
+/*
+    Controller: Mengambil semua blog post.
+    - Mengakses layer model untuk fetch data.
+    - Hanya return JSON tanpa transformasi tambahan.
+*/
 export const getAllPosts = async (req, res) => {
     try {
         const posts = await BlogModel.getAll();
@@ -10,6 +15,11 @@ export const getAllPosts = async (req, res) => {
     }
 };
 
+/*
+    Controller: Mengambil detail post berdasarkan slug.
+    - Slug dipakai karena lebih SEO-friendly dibanding id.
+    - Jika tidak ditemukan, balikin 404 biar client ngerti.
+*/
 export const getPostBySlug = async (req, res) => {
     try {
         const { slug } = req.params;
@@ -26,11 +36,17 @@ export const getPostBySlug = async (req, res) => {
     }
 };
 
+/*
+    Controller: Membuat post baru.
+    - Wajib ada title, slug, dan content.
+    - Data langsung dilempar ke model.
+    - Response mengembalikan insertId untuk keperluan client.
+*/
 export const createPost = async (req, res) => {
     try {
         const data = req.body;
 
-        // Validasi sederhana
+        // Validasi dasar biar request kosong tidak lewat
         if (!data.title || !data.slug || !data.content) {
             return res.status(400).json({ message: "Title, slug, dan content wajib diisi" });
         }
@@ -47,6 +63,11 @@ export const createPost = async (req, res) => {
     }
 };
 
+/*
+    Controller: Mengupdate post berdasarkan id.
+    - Mengambil id dari params.
+    - Jika affectedRows 0 berarti id tidak ada.
+*/
 export const updatePost = async (req, res) => {
     try {
         const { id } = req.params;
@@ -65,6 +86,11 @@ export const updatePost = async (req, res) => {
     }
 };
 
+/*
+    Controller: Menghapus post.
+    - Berdasarkan id.
+    - Jika tidak ada, balikin 404 sebagai indikasi.
+*/
 export const deletePost = async (req, res) => {
     try {
         const { id } = req.params;
