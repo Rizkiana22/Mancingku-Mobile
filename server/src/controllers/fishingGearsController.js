@@ -50,28 +50,21 @@ export const createFishingGear = async (req, res) => {
     - Jika affectedRows 0, berarti ID tidak ada di database.
 */
 export const updateFishingGear = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, image, description, purchase_link } = req.body;
+  try {
+    const { id } = req.params;
+    const data = req.body;
 
-        const data = {
-            name,
-            image,
-            description,
-            purchase_link
-        };
-        
-        const result = await FishingGearModel.update(data, id);
+    const result = await FishingGearModel.update(data, id);
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Fishing gear not found" });
-        }
-
-        res.json({ message: "Fishing gear updated successfully" });
-    } catch (error) {
-        console.error("Error updating fishing gear:", error);
-        res.status(500).json({ message: "Failed to update fishing gear", error });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Fishing gear not found" });
     }
+
+    res.json({ message: "Fishing gear updated successfully" });
+  } catch (error) {
+    console.error("Error updating fishing gear:", error);
+    res.status(500).json({ message: "Failed to update fishing gear", error });
+  }
 };
 
 /*

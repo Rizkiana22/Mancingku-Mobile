@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.get('/bait', getAllBaits);
 router.post('/bait', createBait);
-router.put('/bait/:id', updateBait);
+router.patch('/bait/:id', updateBait);
 router.delete('/bait/:id', deleteBait);
 
 export default router;

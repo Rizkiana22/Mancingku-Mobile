@@ -111,7 +111,7 @@ export default function MenuScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Perlengkapan 🎒</Text>
+        <Text style={styles.title}>Perlengkapan</Text>
         <Text style={styles.subtitle}>Cari kebutuhan mancingmu</Text>
       </View>
 
@@ -146,7 +146,8 @@ const styles = StyleSheet.create({
   },
   header: { 
     padding: 20, 
-    paddingBottom: 10 
+    paddingBottom: 10,
+    marginTop: 50
   },
   title: { 
     fontSize: 24, 

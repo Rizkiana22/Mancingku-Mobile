@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  FlatList, 
-  ActivityIndicator, 
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
   SafeAreaView,
   RefreshControl,
-  ListRenderItem
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
-import SpotCard from '@/components/spotCard'; 
-import { SpotService, SessionService } from '@/service/api';
-import { API_URL } from '@env';
+  ListRenderItem,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
+import SpotCard from "@/components/spotCard";
+import { SpotService, SessionService } from "@/service/api";
+import { API_URL } from "@env";
 
 // ============================================================================
 // CONFIGURATION & CONSTANTS
@@ -28,12 +28,12 @@ const API_CONFIG = {
 const ASSETS_URL = `${API_CONFIG.BASE_URL}/assets`;
 
 const COLORS = {
-  primary: '#014b69',
-  accent: '#da9723',
-  background: '#f8f9fa',
-  textMain: '#333',
-  textMuted: '#666',
-  white: '#fff',
+  primary: "#014b69",
+  accent: "#da9723",
+  background: "#f8f9fa",
+  textMain: "#333",
+  textMuted: "#666",
+  white: "#fff",
 };
 
 // ============================================================================
@@ -46,7 +46,7 @@ interface Spot {
   address: string;
   image: string | null;
   rating: number;
-  nextPrice: number | null; 
+  nextPrice: number | null;
 }
 
 interface FilterState {
@@ -71,7 +71,7 @@ const useFishingSpots = () => {
   const fetchSpots = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await SpotService.getAll(); 
+      const response = await SpotService.getAll();
       const rawSpots = response.data; // Ambil isinya (.data)
 
       // Mapping data spot untuk mengambil harga sesi secara paralel
@@ -92,8 +92,22 @@ const useFishingSpots = () => {
       console.error("[useFishingSpots] Error fetching data:", err);
       // Fallback data untuk development/testing jika API mati
       setSpots([
-        { id: 1, name: "Pemancingan Galatama", address: "Bandung, Jawa Barat", image: null, nextPrice: 50000, rating: 4.5 },
-        { id: 2, name: "Danau Toba Spot", address: "Medan, Sumatra Utara", image: null, nextPrice: 75000, rating: 5.0 },
+        {
+          id: 1,
+          name: "Pemancingan Galatama",
+          address: "Bandung, Jawa Barat",
+          image: null,
+          nextPrice: 50000,
+          rating: 4.5,
+        },
+        {
+          id: 2,
+          name: "Danau Toba Spot",
+          address: "Medan, Sumatra Utara",
+          image: null,
+          nextPrice: 75000,
+          rating: 5.0,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -121,18 +135,18 @@ const useFishingSpots = () => {
 export default function ExploreScreen() {
   // 1. Menggunakan Custom Hook untuk manajemen data
   const { spots, loading, isRefreshing, onRefresh } = useFishingSpots();
-  
+
   // 2. Local UI State
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filter] = useState<FilterState>({
     minPrice: null,
     maxPrice: null,
-    rating: 0
+    rating: 0,
   });
 
   /**
    * Filtering Logic
-   * Menggunakan useMemo agar kalkulasi filter hanya berjalan 
+   * Menggunakan useMemo agar kalkulasi filter hanya berjalan
    * jika data spots atau input search berubah.
    */
   const filteredSpots = useMemo(() => {
@@ -140,12 +154,12 @@ export default function ExploreScreen() {
 
     const query = searchQuery.toLowerCase();
 
-    return spots.filter(spot => {
+    return spots.filter((spot) => {
       // Filter Text (Nama atau Alamat)
-      const matchText = 
-        (spot.name?.toLowerCase().includes(query)) || 
-        (spot.address?.toLowerCase().includes(query));
-      
+      const matchText =
+        spot.name?.toLowerCase().includes(query) ||
+        spot.address?.toLowerCase().includes(query);
+
       // Filter Harga & Rating
       const price = spot.nextPrice || 0;
       const matchMin = filter.minPrice ? price >= filter.minPrice : true;
@@ -162,38 +176,40 @@ export default function ExploreScreen() {
    */
   // Di dalam renderSpotItem explore.tsx
 
-const renderSpotItem: ListRenderItem<Spot> = useCallback(({ item }) => {
-    
-  // Logic Gambar (Rakitan Ngrok + Folder)
-  const imageSource = item.image 
-    ? { uri: `${ASSETS_URL}/spots/${item.image}` }
-    : require('@/assets/images/fishing.png'); 
+  const renderSpotItem: ListRenderItem<Spot> = useCallback(({ item }) => {
+    // ✅ AMAN: tidak pakai require asset lokal
+    const imageSource = item.image
+      ? { uri: `${ASSETS_URL}/spots/${item.image}` }
+      : undefined;
 
-  return (
-    <SpotCard 
-      id={item.id}
-      title={item.name} 
-      imageSource={imageSource} 
-      location={item.address}
-      price={item.nextPrice} // <-- Harga dikirim dari sini (Parent)
-      rating={item.rating}
-      onPress={() => {
-        // Navigasi ke detail (Ganti router-link Vue)
-        // router.push('/spot/' + item.id)
-        console.log("Pindah ke detail spot:", item.id);
-      }}
-    />
-  );
-}, []);
+    return (
+      <SpotCard
+        id={item.id}
+        title={item.name}
+        imageSource={imageSource}
+        location={item.address}
+        price={item.nextPrice}
+        rating={item.rating}
+        onPress={() => {
+          console.log("Pindah ke detail spot:", item.id);
+        }}
+      />
+    );
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.title}>Cari Spot 🎣</Text>
+          <Text style={styles.title}>Cari Spot</Text>
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={COLORS.textMuted} style={styles.searchIcon} />
+            <Ionicons
+              name="search"
+              size={20}
+              color={COLORS.textMuted}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Cari lokasi atau nama spot..."
@@ -221,13 +237,23 @@ const renderSpotItem: ListRenderItem<Spot> = useCallback(({ item }) => {
             showsVerticalScrollIndicator={false}
             // Fitur Refresh
             refreshControl={
-              <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[COLORS.accent]} />
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                colors={[COLORS.accent]}
+              />
             }
             // Tampilan saat data kosong
             ListEmptyComponent={
               <View style={styles.centerContainer}>
-                <Ionicons name="fish-outline" size={48} color={COLORS.textMuted} />
-                <Text style={styles.emptyText}>Tidak ada spot ditemukan :(</Text>
+                <Ionicons
+                  name="fish-outline"
+                  size={48}
+                  color={COLORS.textMuted}
+                />
+                <Text style={styles.emptyText}>
+                  Tidak ada spot ditemukan :(
+                </Text>
               </View>
             }
           />
@@ -241,67 +267,67 @@ const renderSpotItem: ListRenderItem<Spot> = useCallback(({ item }) => {
 // STYLES
 // ============================================================================
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: COLORS.background 
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  content: { 
-    flex: 1, 
-    paddingHorizontal: 20, 
-    paddingTop: 10 
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
   // Header Styles
-  header: { 
-    marginBottom: 15 
+  header: {
+    marginBottom: 15,
+    marginTop: 50,
   },
-  title: { 
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    color: COLORS.primary, 
-    marginBottom: 10 
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    marginBottom: 10,
   },
   searchContainer: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.white,
     borderRadius: 12, // Modern rounded corner
-    paddingHorizontal: 12, 
-    height: 50, 
+    paddingHorizontal: 12,
+    height: 50,
     // Shadow iOS
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     // Shadow Android
     elevation: 3,
   },
-  searchIcon: { 
-    marginRight: 10 
+  searchIcon: {
+    marginRight: 10,
   },
-  input: { 
-    flex: 1, 
-    height: '100%', 
+  input: {
+    flex: 1,
+    height: "100%",
     color: COLORS.textMain,
-    fontSize: 14
+    fontSize: 14,
   },
   // List Styles
-  listContainer: { 
-    paddingBottom: 100 
+  listContainer: {
+    paddingBottom: 100,
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 50
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 50,
   },
   loadingText: {
     marginTop: 10,
     color: COLORS.textMuted,
-    fontSize: 12
+    fontSize: 12,
   },
-  emptyText: { 
-    marginTop: 10, 
+  emptyText: {
+    marginTop: 10,
     color: COLORS.textMuted,
-    fontSize: 14 
-  }
+    fontSize: 14,
+  },
 });

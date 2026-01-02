@@ -6,7 +6,6 @@ import db from "../config/db.js";
  * Seluruh query menggunakan prepared statements untuk mencegah SQL injection.
  */
 const SpotModel = {
-
   /**
    * Mengambil seluruh data spot.
    * Biasanya digunakan untuk listing semua lokasi pemancingan.
@@ -70,6 +69,22 @@ const SpotModel = {
     `;
 
     const [rows] = await db.execute(sql, [spotId]);
+    return rows;
+  },
+
+  /**
+   * Method getPopular
+   * Mengambil daftar tempat yang memiliki rating tinggi.
+   * Menggunakan seleksi menurun dari 5 tempat yang memiliki rating terbaik.
+   */
+  getPopular: async (limit = 5) => {
+    const sql = `
+      SELECT id, name, address, image, rating
+      FROM spots
+      ORDER BY rating DESC
+      LIMIT ?
+    `;
+    const [rows] = await db.execute(sql, [limit]);
     return rows;
   },
 };

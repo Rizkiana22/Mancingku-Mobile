@@ -14,8 +14,8 @@ router.get('/fishingGear', getAllFishingGear);
 // POST: Tambah fishing gear baru
 router.post('/fishingGear', createFishingGear);
 
-// PUT: Update fishing gear berdasarkan ID
-router.put('/fishingGear/:id', updateFishingGear);
+// patch: Update fishing gear berdasarkan ID
+router.patch('/fishingGear/:id', updateFishingGear);
 
 // DELETE: Hapus fishing gear berdasarkan ID
 router.delete('/fishingGear/:id', deleteFishingGear);

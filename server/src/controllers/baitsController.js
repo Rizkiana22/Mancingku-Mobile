@@ -47,29 +47,21 @@ export const createBait = async (req, res) => {
  * Mengupdate bait berdasarkan ID dari URL params.
  */
 export const updateBait = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, image, description, purchase_link } = req.body;
-        
-        const data = {
-            name,
-            image,
-            description,
-            purchase_link
-        };
-        
-        const result = await BaitModel.update(data, id);
+  try {
+    const { id } = req.params;
+    const data = req.body;
 
-        // Cek apakah ID ada di database
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Bait not found" });
-        }
+    const result = await BaitModel.update(data, id);
 
-        res.json({ message: "Bait updated successfully" });
-    } catch (error) {
-        console.error("Error updating bait:", error);
-        res.status(500).json({ message: "Failed to update bait", error });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Bait tidak ditemukan" });
     }
+
+    res.json({ message: "Bait berhasil diedit" });
+  } catch (error) {
+    console.error("Error updating bait:", error);
+    res.status(500).json({ message: "Gagal update bait", error });
+  }
 };
 
 /**

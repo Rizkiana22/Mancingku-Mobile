@@ -12,6 +12,7 @@ import ReviewRoute from './src/routes/reviewRoute.js';
 import BaitsRoute from './src/routes/baitsRoute.js';
 import BlogRoute from './src/routes/blogRoute.js';
 import FishingGearsRoute from './src/routes/fishingGearsRoute.js';
+import HistoryRoute from './src/routes/historyRoute.js';
 
 const app = express();
 const port = 3000;
@@ -57,6 +58,7 @@ app.use(ReviewRoute);
 app.use(BaitsRoute);
 app.use(BlogRoute);
 app.use(FishingGearsRoute);
+app.use(HistoryRoute);
 
 /**
  * Middleware penanganan error global
