@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -8,188 +8,181 @@ import {
   ImageSourcePropType 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 
-// ============================================================================
-// 1. CONFIGURATION & CONSTANTS
-// ============================================================================
-const COLORS = {
-  primary: '#014b69',
-  accent: '#da9723',
-  textMain: '#333333',
-  textMuted: '#666666',
-  star: '#FFD700',
-  white: '#ffffff',
-  border: '#f0f0f0',
-};
-
-// ============================================================================
-// 2. INTERFACES
-// ============================================================================
+// 1. Definisikan tipe data yang diterima (Props)
+// Ini ibarat "props: { spot: Object }" di Vue
 interface SpotCardProps {
   id: number;
   title: string;
-  imageSource: ImageSourcePropType; // Tipe data yang benar untuk Gambar RN
+  imageSource: ImageSourcePropType; // Bisa URL object atau require()
   location: string;
-  price: number | null;
   rating: number;
+  price: number | null; // Bisa null kalau belum ada jadwal
+  onPress?: () => void; // Buat handle klik tombol "Pilih"
 }
 
-// ============================================================================
-// 3. HELPER COMPONENT (Micro-Component)
-// Memisahkan logic loop bintang agar render utama bersih
-// ============================================================================
-const StarRating = ({ rating }: { rating: number }) => {
-  // Array.from lebih bersih daripada for-loop manual di dalam JSX
-  return (
-    <View style={styles.ratingContainer}>
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Ionicons 
-          key={index} 
-          name={index < Math.round(rating) ? "star" : "star-outline"} 
-          size={16} 
-          color={COLORS.star} 
-        />
-      ))}
-    </View>
-  );
-};
-
-// ============================================================================
-// 4. MAIN COMPONENT
-// ============================================================================
 export default function SpotCard({ 
-  id, 
   title, 
   imageSource, 
   location, 
+  rating, 
   price, 
-  rating 
+  onPress 
 }: SpotCardProps) {
-  const router = useRouter();
 
-  // Helper untuk navigasi
-  const handlePress = () => {
-    router.push(`/spot/${id}`);
-  };
+  // 2. Logic Bintang (Computed Property di Vue)
+  const renderStars = useMemo(() => {
+    const roundedRating = Math.round(rating);
+    return (
+      <View style={styles.ratingContainer}>
+        <Text style={styles.ratingText}>{rating}</Text>
+        <View style={styles.starsRow}>
+          {[...Array(5)].map((_, i) => (
+            <Ionicons 
+              key={i} 
+              name={i < roundedRating ? "star" : "star-outline"} 
+              size={14} 
+              color="#FFD700" 
+            />
+          ))}
+        </View>
+      </View>
+    );
+  }, [rating]);
 
-  // Helper format harga
-  const formattedPrice = price 
-    ? `Rp ${price.toLocaleString('id-ID')}` 
-    : 'Info Menyusul';
+  // 3. Format Rupiah
+  const formattedPrice = useMemo(() => {
+    if (price === null) return "Rp ...";
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(price);
+  }, [price]);
 
   return (
     <View style={styles.card}>
-      {/* Gambar Spot */}
-      <Image source={imageSource} style={styles.image} resizeMode="cover" />
+      {/* --- GAMBAR --- */}
+      <View style={styles.imageWrapper}>
+        <Image 
+          source={imageSource} 
+          style={styles.image} 
+          resizeMode="cover"
+        />
+      </View>
 
-      {/* Konten Card */}
-      <View style={styles.content}>
+      {/* --- DETAIL INFO --- */}
+      <View style={styles.details}>
+        <Text style={styles.title} numberOfLines={1}>{title}</Text>
         
-        {/* Judul & Rating */}
-        <View style={styles.headerRow}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <StarRating rating={rating} />
+        <View style={styles.row}>
+          <Text style={styles.location} numberOfLines={1}>📍 {location}</Text>
         </View>
 
-        {/* Lokasi */}
-        <View style={styles.locationRow}>
-          <Ionicons name="location-sharp" size={14} color={COLORS.textMuted} />
-          <Text style={styles.location} numberOfLines={1}>{location}</Text>
+        {/* Rating */}
+        {renderStars}
+
+        {/* Info Tambahan (Opsional, sesuai Vue kamu) */}
+        {/* Di sini kita bisa tambah info kapasitas kalau datanya dikirim dari Parent */}
+      </View>
+
+      {/* --- HARGA & TOMBOL --- */}
+      <View style={styles.footer}>
+        <View>
+          <Text style={styles.priceLabel}>Harga per sesi</Text>
+          <Text style={styles.priceValue}>{formattedPrice}</Text>
         </View>
 
-        {/* Footer: Harga & Tombol */}
-        <View style={styles.footer}>
-          <Text style={styles.price}>{formattedPrice}</Text>
-          
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={handlePress}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>Pilih</Text>
-          </TouchableOpacity>
-        </View>
-
+        <TouchableOpacity style={styles.button} onPress={onPress}>
+          <Text style={styles.buttonText}>Pilih</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-// ============================================================================
-// 5. STYLES
-// ============================================================================
+// 4. Styles (Mirip CSS Vue kamu, tapi versi React Native)
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 16,
-    overflow: 'hidden',
-    // Shadow Styling (Android + iOS)
-    elevation: 3,
+    // Shadow iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    // Shadow Android
+    elevation: 3,
+    overflow: 'hidden', // Biar gambar gak nembus radius
+  },
+  imageWrapper: {
+    height: 180, // Tinggi gambar fix
+    width: '100%',
+    backgroundColor: '#eee',
   },
   image: {
     width: '100%',
-    height: 150,
-    backgroundColor: '#eee', // Placeholder color saat loading
+    height: '100%',
   },
-  content: {
+  details: {
     padding: 12,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 4,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.textMain,
-    flex: 1, // Agar text truncate bekerja jika kepanjangan
-    marginRight: 8,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  location: {
+    fontSize: 14,
+    color: '#666',
   },
   ratingContainer: {
     flexDirection: 'row',
-  },
-  locationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  location: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginLeft: 4,
-    flex: 1,
+  ratingText: {
+    fontWeight: 'bold',
+    marginRight: 6,
+    color: '#333',
   },
+  starsRow: {
+    flexDirection: 'row',
+  },
+  // Footer (Harga & Tombol)
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    padding: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 10,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#fafafa',
   },
-  price: {
-    fontSize: 14,
+  priceLabel: {
+    fontSize: 10,
+    color: '#888',
+  },
+  priceValue: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.primary, // Menggunakan warna biru primary agar elegan
+    color: '#da9723', // Warna Oranye sesuai aksen kamu
   },
   button: {
-    backgroundColor: COLORS.accent,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    backgroundColor: '#d97706',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
   },
   buttonText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
+    color: 'white',
+    fontWeight: '600',
+  }
 });

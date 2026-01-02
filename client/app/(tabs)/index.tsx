@@ -116,7 +116,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/activity')} 
           />
           <QuickMenuItem 
-            label="Sewa Alat" 
+            label="Beli Perlengkapan" 
             icon="fish" 
             color={COLORS.accent}
             onPress={() => router.push('/menu')} 

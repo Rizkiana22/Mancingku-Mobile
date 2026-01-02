@@ -22,7 +22,9 @@ const port = 3000;
  * - CORS: mengatur domain mana yang diizinkan mengakses API (sementara terbuka untuk development)
  * - Rate Limiting: membatasi jumlah request agar terhindar dari brute force atau spam
  */
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 app.use(cors({
   origin: '*', // Saat production, ubah ke domain frontend yang valid
   methods: ['GET', 'POST', 'PUT', 'DELETE']
@@ -32,7 +34,8 @@ app.use(rateLimit({
   windowMs: 60 * 1000, // Interval 1 menit
   max: 100,            // Maksimum 100 request per IP
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  keyGenerator: (req, res) => req.ip
 }));
 
 /**
@@ -40,6 +43,8 @@ app.use(rateLimit({
  * Membatasi ukuran JSON untuk mencegah serangan payload besar
  */
 app.use(express.json({ limit: '50kb' }));
+app.set('trust proxy', 1);
+app.use('/assets', express.static('assets'));
 
 // Registrasi seluruh rute API
 // Setiap file route sudah mendefinisikan prefix endpoint-nya sendiri

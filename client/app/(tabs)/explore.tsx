@@ -13,15 +13,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import SpotCard from '@/components/spotCard'; 
+import { SpotService, SessionService } from '@/service/api';
+import { API_URL } from '@env';
 
 // ============================================================================
 // CONFIGURATION & CONSTANTS
 // Tips: Di real project, pindahkan ini ke file constant/config.js atau .env
 // ============================================================================
 const API_CONFIG = {
-  BASE_URL: 'http://192.168.1.XX:3000', // Ganti IP sesuai environment
+  BASE_URL: API_URL, // Ganti IP sesuai environment
   TIMEOUT: 5000,
 };
+
+const ASSETS_URL = `${API_CONFIG.BASE_URL}/assets`;
 
 const COLORS = {
   primary: '#014b69',
@@ -67,15 +71,14 @@ const useFishingSpots = () => {
   const fetchSpots = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: rawSpots } = await axios.get(`${API_CONFIG.BASE_URL}/api/spots`);
+      const response = await SpotService.getAll(); 
+      const rawSpots = response.data; // Ambil isinya (.data)
 
       // Mapping data spot untuk mengambil harga sesi secara paralel
       const spotsWithPrice: Spot[] = await Promise.all(
         rawSpots.map(async (sp: Spot) => {
           try {
-            const sessionRes = await axios.get(
-              `${API_CONFIG.BASE_URL}/api/sessions/${sp.id}/next-session`
-            );
+            const sessionRes = await SessionService.getNextPrice(sp.id);
             return { ...sp, nextPrice: sessionRes.data?.price ?? null };
           } catch (error) {
             // Graceful degradation: Jika gagal ambil harga, set null tapi jangan crash
@@ -157,17 +160,31 @@ export default function ExploreScreen() {
    * Render Item Function
    * Dipisah agar tidak di-recreate setiap kali render cycle
    */
-  const renderSpotItem: ListRenderItem<Spot> = useCallback(({ item }) => (
+  // Di dalam renderSpotItem explore.tsx
+
+const renderSpotItem: ListRenderItem<Spot> = useCallback(({ item }) => {
+    
+  // Logic Gambar (Rakitan Ngrok + Folder)
+  const imageSource = item.image 
+    ? { uri: `${ASSETS_URL}/spots/${item.image}` }
+    : require('@/assets/images/fishing.png'); 
+
+  return (
     <SpotCard 
       id={item.id}
       title={item.name} 
-      // Fallback image handling
-      imageSource={item.image ? { uri: item.image } : require('@/assets/images/fishing.png')} 
+      imageSource={imageSource} 
       location={item.address}
-      price={item.nextPrice}
+      price={item.nextPrice} // <-- Harga dikirim dari sini (Parent)
       rating={item.rating}
+      onPress={() => {
+        // Navigasi ke detail (Ganti router-link Vue)
+        // router.push('/spot/' + item.id)
+        console.log("Pindah ke detail spot:", item.id);
+      }}
     />
-  ), []);
+  );
+}, []);
 
   return (
     <SafeAreaView style={styles.container}>

@@ -34,4 +34,10 @@ coverage
 # Vitest
 __screenshots__/
 
+# --- SECURITY (WAJIB) ---
 .env
+.env.local
+.env.development
+.env.test
+.env.production
+*.pem
