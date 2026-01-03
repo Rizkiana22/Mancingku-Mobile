@@ -5,18 +5,20 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/context/AuthContext";
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 const COLORS = {
   primary: "#014b69",
-  accent: "#da9723",
   background: "#f8f9fa",
   white: "#ffffff",
   textMain: "#333333",
@@ -25,19 +27,8 @@ const COLORS = {
 };
 
 // ============================================================================
-// SUB-COMPONENTS
+// REUSABLE MENU ITEM
 // ============================================================================
-const ProfileHeader = () => (
-  <View style={styles.profileHeader}>
-    <Image
-      source={{ uri: "https://i.pravatar.cc/150?img=12" }}
-      style={styles.avatar}
-    />
-    <Text style={styles.userName}>Angler Pro</Text>
-    <Text style={styles.userEmail}>angler@mail.com</Text>
-  </View>
-);
-
 const ProfileMenuItem = ({
   icon,
   label,
@@ -66,25 +57,90 @@ const ProfileMenuItem = ({
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isLoggedIn, user, signOut } = useAuth();
 
+  const username = user?.email?.split("@")[0] ?? "User";
+
+  // ============================================================================
+  // GUEST (BELUM LOGIN)
+  // ============================================================================
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.topBar, { paddingTop: insets.top }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
+          </TouchableOpacity>
+
+          <Text style={styles.topTitle}>Profile</Text>
+
+          {/* spacer supaya title tetap center */}
+          <View style={{ width: 24 }} />
+        </View>
+
+        <View style={styles.guestContainer}>
+          <Ionicons
+            name="person-circle-outline"
+            size={120}
+            color={COLORS.textMuted}
+          />
+
+          <Text style={styles.guestTitle}>Kamu belum login</Text>
+          <Text style={styles.guestSubtitle}>
+            Login atau daftar untuk melanjutkan
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: COLORS.primary }]}
+            onPress={() => router.push("/auth/login")}
+          >
+            <Text style={styles.actionText}>Login</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: COLORS.white,
+                borderWidth: 1,
+                borderColor: COLORS.primary,
+              },
+            ]}
+            onPress={() => router.push("/auth/register")}
+          >
+            <Text style={[styles.actionText, { color: COLORS.primary }]}>
+              Daftar
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================================
+  // LOGIN (SUDAH LOGIN)
+  // ============================================================================
   return (
     <SafeAreaView style={styles.container}>
-      {/* 🔝 TOP BAR */}
+      {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
-        </TouchableOpacity>
-
+        <View style={{ width: 24 }} />
         <Text style={styles.topTitle}>Profile</Text>
-
-        {/* Spacer supaya title tetap center */}
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <ProfileHeader />
+        {/* PROFILE HEADER */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="person" size={48} color={COLORS.white} />
+          </View>
 
-        {/* Akun */}
+          <Text style={styles.userName}>{username}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+        </View>
+
+        {/* AKUN */}
         <Text style={styles.sectionTitle}>Akun</Text>
         <View style={styles.card}>
           <ProfileMenuItem
@@ -92,14 +148,9 @@ export default function ProfileScreen() {
             label="Edit Profil"
             onPress={() => alert("Edit Profil")}
           />
-          <ProfileMenuItem
-            icon="lock-closed"
-            label="Ubah Password"
-            onPress={() => alert("Ubah Password")}
-          />
         </View>
 
-        {/* Aktivitas */}
+        {/* AKTIVITAS */}
         <Text style={styles.sectionTitle}>Aktivitas</Text>
         <View style={styles.card}>
           <ProfileMenuItem
@@ -109,23 +160,8 @@ export default function ProfileScreen() {
           />
         </View>
 
-        {/* Aplikasi */}
-        <Text style={styles.sectionTitle}>Aplikasi</Text>
-        <View style={styles.card}>
-          <ProfileMenuItem
-            icon="help-circle"
-            label="Bantuan"
-            onPress={() => alert("Bantuan")}
-          />
-          <ProfileMenuItem
-            icon="information-circle"
-            label="Tentang Aplikasi"
-            onPress={() => alert("Tentang")}
-          />
-        </View>
-
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton}>
+        {/* LOGOUT */}
+        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
           <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
           <Text style={styles.logoutText}>Keluar</Text>
         </TouchableOpacity>
@@ -143,10 +179,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  // 🔝 Top Bar
   topBar: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
@@ -160,17 +194,19 @@ const styles = StyleSheet.create({
     color: COLORS.textMain,
   },
 
-  // Profile Header
   profileHeader: {
     alignItems: "center",
     paddingVertical: 30,
     backgroundColor: COLORS.white,
     marginBottom: 20,
   },
-  avatar: {
+  avatarCircle: {
     width: 90,
     height: 90,
     borderRadius: 45,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 10,
   },
   userName: {
@@ -240,5 +276,33 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "bold",
     marginLeft: 8,
+  },
+
+  guestContainer: {
+    alignItems: "center",
+    marginTop: 100,
+    paddingHorizontal: 30,
+  },
+  guestTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginTop: 16,
+    color: COLORS.textMain,
+  },
+  guestSubtitle: {
+    textAlign: "center",
+    marginTop: 8,
+    color: COLORS.textMuted,
+  },
+  actionButton: {
+    width: "100%",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  actionText: {
+    fontWeight: "bold",
+    color: COLORS.white,
   },
 });

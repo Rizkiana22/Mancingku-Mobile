@@ -13,6 +13,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
+import { API_URL } from "@env";
+import { useAuth } from "@/context/AuthContext";
 
 // ============================================================================
 // 1. KONFIGURASI WARNA & KONSTANTA
@@ -182,11 +184,12 @@ export default function ActivityScreen() {
   const [tickets, setTickets] = useState<Ticket[]>([]); // Menyimpan semua data dari API
   const [loading, setLoading] = useState(true); // Indikator loading awal
   const [refreshing, setRefreshing] = useState(false); // Indikator tarik-turun (pull-to-refresh)
+  const { user } = useAuth();
 
   // Konfigurasi API
-  const USER_ID = 1; // Hardcoded sementara
+  const USER_ID = user?.id; // Hardcoded sementara
   // Catatan: Ngrok URL berubah setiap restart. Pastikan selalu update.
-  const API_URL = `https://arline-noncensored-shockedly.ngrok-free.dev/history/${USER_ID}`;
+  const historyUrl = `${API_URL}/history/${USER_ID}`;
 
   /**
    * Fungsi Fetch Data
@@ -195,7 +198,7 @@ export default function ActivityScreen() {
    */
   const fetchHistory = useCallback(async () => {
     try {
-      const response = await axios.get(API_URL);
+      const response = await axios.get(historyUrl);
       
       // Validasi response sukses
       if (response.data.success) {
@@ -209,7 +212,7 @@ export default function ActivityScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [API_URL]);
+  }, [historyUrl]);
 
   /**
    * Lifecycle: Component Did Mount

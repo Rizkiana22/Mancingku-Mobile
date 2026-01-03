@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 // ============================================================================
 // Di Vue, ini mirip bagian `props: { ... }` dengan validasi tipe data.
 // TypeScript memastikan parent component mengirim data yang BENAR.
-interface SpotCardProps {
+export interface SpotCardProps {
   id: number;
   title: string;
   imageSource?: ImageSourcePropType; // Tanda '?' artinya props ini Opsional

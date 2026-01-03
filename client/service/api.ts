@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_URL } from "@env";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 const BASE_URL = API_URL;
 
@@ -16,6 +17,7 @@ export const SpotService = {
   getAll: () => api.get("/spots"),
   getById: (id: number) => api.get(`/spots/${id}`),
   getBySlug: (slug: string) => api.get(`/spots/slug/${slug}`),
+  getPopular: () => api.get("/spots/popular"),
 };
 
 // === SESSIONS (Pake 's') ===
@@ -47,6 +49,9 @@ export const BlogService = {
   getAll: () => api.get("/blog"),
   getBySlug: (slug: string) => api.get(`/blog/${slug}`),
 };
+
+export const BLOG_IMAGE_URL = (image: string) =>
+  `${API_URL}/assets/blog/${image}`;
 
 // === BOOKING (Tunggal: /booking) ===
 export const BookingService = {

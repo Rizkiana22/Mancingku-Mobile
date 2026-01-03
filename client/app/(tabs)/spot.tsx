@@ -15,6 +15,7 @@ import axios from "axios";
 import SpotCard from "@/components/spotCard";
 import { SpotService, SessionService } from "@/service/api";
 import { API_URL } from "@env";
+import { useRouter } from "expo-router";
 
 // ============================================================================
 // CONFIGURATION & CONSTANTS
@@ -42,6 +43,7 @@ const COLORS = {
 // ============================================================================
 interface Spot {
   id: number;
+  slug: string;
   name: string;
   address: string;
   image: string | null;
@@ -94,6 +96,7 @@ const useFishingSpots = () => {
       setSpots([
         {
           id: 1,
+          slug: "Pemancingan_Galatama",
           name: "Pemancingan Galatama",
           address: "Bandung, Jawa Barat",
           image: null,
@@ -102,6 +105,7 @@ const useFishingSpots = () => {
         },
         {
           id: 2,
+          slug: "Danau_Toba_Spot",
           name: "Danau Toba Spot",
           address: "Medan, Sumatra Utara",
           image: null,
@@ -135,6 +139,8 @@ const useFishingSpots = () => {
 export default function ExploreScreen() {
   // 1. Menggunakan Custom Hook untuk manajemen data
   const { spots, loading, isRefreshing, onRefresh } = useFishingSpots();
+
+  const router = useRouter();
 
   // 2. Local UI State
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -177,7 +183,7 @@ export default function ExploreScreen() {
   // Di dalam renderSpotItem explore.tsx
 
   const renderSpotItem: ListRenderItem<Spot> = useCallback(({ item }) => {
-    // ✅ AMAN: tidak pakai require asset lokal
+    // AMAN: tidak pakai require asset lokal
     const imageSource = item.image
       ? { uri: `${ASSETS_URL}/spots/${item.image}` }
       : undefined;
@@ -191,7 +197,10 @@ export default function ExploreScreen() {
         price={item.nextPrice}
         rating={item.rating}
         onPress={() => {
-          console.log("Pindah ke detail spot:", item.id);
+          router.push({
+            pathname: "/spot/[slug]",
+            params: { slug: item.slug },
+          });
         }}
       />
     );
@@ -226,7 +235,7 @@ export default function ExploreScreen() {
         {loading && !isRefreshing ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={COLORS.accent} />
-            <Text style={styles.loadingText}>Memuat spot terbaik...</Text>
+            <Text style={styles.loadingText}>Memuat spot...</Text>
           </View>
         ) : (
           <FlatList
