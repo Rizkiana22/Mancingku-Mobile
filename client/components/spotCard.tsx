@@ -9,16 +9,19 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// 1. Definisikan tipe data yang diterima (Props)
-// Ini ibarat "props: { spot: Object }" di Vue
+// ============================================================================
+// 1. TYPE DEFINITION (INTERFACE)
+// ============================================================================
+// Di Vue, ini mirip bagian `props: { ... }` dengan validasi tipe data.
+// TypeScript memastikan parent component mengirim data yang BENAR.
 interface SpotCardProps {
   id: number;
   title: string;
-  imageSource?: ImageSourcePropType; // Bisa URL object atau require()
+  imageSource?: ImageSourcePropType; // Tanda '?' artinya props ini Opsional
   location: string;
   rating: number;
-  price: number | null; // Bisa null kalau belum ada jadwal
-  onPress?: () => void; // Buat handle klik tombol "Pilih"
+  price: number | null; // Bisa null jika harga belum ditentukan
+  onPress?: () => void; // Fungsi callback ketika kartu diklik (mirip @click di Vue)
 }
 
 export default function SpotCard({
@@ -29,16 +32,27 @@ export default function SpotCard({
   price,
   onPress,
 }: SpotCardProps) {
-  // 2. Logic Bintang (Computed Property di Vue)
+  
+  // ==========================================================================
+  // 2. LOGIC BINTANG (useMemo)
+  // ==========================================================================
+  // `useMemo` adalah hook React yang fungsinya SAMA PERSIS dengan "Computed Property" di Vue.
+  // Dia hanya akan menghitung ulang jika nilai di dalam array dependensi `[rating]` berubah.
+  // Jika rating tidak berubah, dia pakai hasil cache (hemat performa).
   const renderStars = useMemo(() => {
     const roundedRating = Math.round(rating);
+    
     return (
       <View style={styles.ratingContainer}>
+        {/* Menampilkan Angka Rating (misal: 4.5) */}
         <Text style={styles.ratingText}>{rating}</Text>
+        
+        {/* Looping Bintang */}
         <View style={styles.starsRow}>
+          {/* Trik membuat array kosong panjang 5 untuk di-map */}
           {[...Array(5)].map((_, i) => (
             <Ionicons
-              key={i}
+              key={i} // Wajib ada key unik dalam loop React
               name={i < roundedRating ? "star" : "star-outline"}
               size={14}
               color="#FFD700"
@@ -49,9 +63,15 @@ export default function SpotCard({
     );
   }, [rating]);
 
-  // 3. Format Rupiah
+  // ==========================================================================
+  // 3. FORMAT HARGA (useMemo)
+  // ==========================================================================
+  // Sama, ini juga Computed Property.
+  // Mengubah angka mentah (30000) menjadi format Rupiah (Rp 30.000).
   const formattedPrice = useMemo(() => {
-    if (price === null) return "Rp ...";
+    if (price === null) return "Rp ..."; // Fallback jika data kosong
+    
+    // Intl.NumberFormat adalah fitur bawaan JavaScript modern
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
@@ -59,10 +79,16 @@ export default function SpotCard({
     }).format(price);
   }, [price]);
 
+  // ==========================================================================
+  // 4. TEMPLATE (JSX)
+  // ==========================================================================
   return (
     <View style={styles.card}>
+      
       {/* --- GAMBAR --- */}
       <View style={styles.imageWrapper}>
+        {/* Conditional Rendering: Mirip `v-if="imageSource"` di Vue */}
+        {/* Hanya render Image jika imageSource ada isinya */}
         {imageSource && (
           <Image source={imageSource} style={styles.image} resizeMode="cover" />
         )}
@@ -70,6 +96,7 @@ export default function SpotCard({
 
       {/* --- DETAIL INFO --- */}
       <View style={styles.details}>
+        {/* numberOfLines={1}: Text truncation (titik-titik ...) jika kepanjangan */}
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
@@ -80,11 +107,8 @@ export default function SpotCard({
           </Text>
         </View>
 
-        {/* Rating */}
+        {/* Memanggil hasil computed property bintang */}
         {renderStars}
-
-        {/* Info Tambahan (Opsional, sesuai Vue kamu) */}
-        {/* Di sini kita bisa tambah info kapasitas kalau datanya dikirim dari Parent */}
       </View>
 
       {/* --- HARGA & TOMBOL --- */}
@@ -94,6 +118,7 @@ export default function SpotCard({
           <Text style={styles.priceValue}>{formattedPrice}</Text>
         </View>
 
+        {/* TouchableOpacity: Komponen standar RN untuk tombol dengan efek klik */}
         <TouchableOpacity style={styles.button} onPress={onPress}>
           <Text style={styles.buttonText}>Pilih</Text>
         </TouchableOpacity>
@@ -102,25 +127,36 @@ export default function SpotCard({
   );
 }
 
-// 4. Styles (Mirip CSS Vue kamu, tapi versi React Native)
+// ============================================================================
+// 5. STYLES
+// ============================================================================
+// Di React Native, styling menggunakan JavaScript Object, bukan CSS biasa.
+// Default display-nya adalah FLEXBOX (flexDirection default: 'column').
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
     marginBottom: 16,
-    // Shadow iOS
+    
+    // --- BAYANGAN (SHADOW) ---
+    // Di RN, shadow iOS dan Android beda properti.
+    
+    // Shadow khusus iOS:
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    // Shadow Android
-    elevation: 3,
-    overflow: "hidden", // Biar gambar gak nembus radius
+    
+    // Shadow khusus Android:
+    elevation: 3, 
+    
+    // Agar konten (gambar) yang di sudut tidak menembus rounded corner
+    overflow: "hidden", 
   },
   imageWrapper: {
-    height: 180, // Tinggi gambar fix
+    height: 180, // Tinggi fix agar layout tidak loncat
     width: "100%",
-    backgroundColor: "#eee",
+    backgroundColor: "#eee", // Warna abu-abu saat gambar loading/kosong
   },
   image: {
     width: "100%",
@@ -136,8 +172,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row", // Ubah arah flex jadi horizontal
+    alignItems: "center", // Vertikal align center
     marginBottom: 8,
   },
   location: {
@@ -157,10 +193,10 @@ const styles = StyleSheet.create({
   starsRow: {
     flexDirection: "row",
   },
-  // Footer (Harga & Tombol)
+  // Footer
   footer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-between", // Kiri (Harga) dan Kanan (Tombol) mentok ujung
     alignItems: "center",
     padding: 12,
     borderTopWidth: 1,
@@ -174,7 +210,7 @@ const styles = StyleSheet.create({
   priceValue: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#da9723", // Warna Oranye sesuai aksen kamu
+    color: "#da9723", // Warna Oranye
   },
   button: {
     backgroundColor: "#d97706",
