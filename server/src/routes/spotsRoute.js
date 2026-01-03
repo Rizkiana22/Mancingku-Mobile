@@ -3,9 +3,9 @@ import { getAllSpots, getSpotById, getSpotBySlug, getPopularSpots } from "../con
 
 const router = express.Router();
 
-router.get('/spots', getAllSpots);
-router.get('/spots/:id', getSpotById);
-router.get("/spots/slug/:slug", getSpotBySlug);
 router.get('/spots/popular', getPopularSpots);
+router.get("/spots/slug/:slug", getSpotBySlug);
+router.get('/spots/:id', getSpotById);
+router.get('/spots', getAllSpots);
 
 export default router;

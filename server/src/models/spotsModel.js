@@ -84,7 +84,7 @@ const SpotModel = {
       ORDER BY rating DESC
       LIMIT ?
     `;
-    const [rows] = await db.execute(sql, [limit]);
+    const [rows] = await db.query(sql, [limit]);
     return rows;
   },
 };
