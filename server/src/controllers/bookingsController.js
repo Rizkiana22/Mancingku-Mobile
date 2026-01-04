@@ -7,25 +7,33 @@ import BookingModel from "../models/bookingsModel.js";
     - Jika sukses, kembalikan insertId untuk keperluan tracking di client.
 */
 export const createBooking = async (req, res) => {
-    try {
-        const data = req.body;
-        
-        const result = await BookingModel.create(data);
+  try {
+    const userId = req.user.id; // dari verifyToken
+    const { session_id, booking_date, total_people } = req.body;
 
-        res.json({
-            message: "Booking created successfully",
-            bookingId: result.insertId
-        });
+    const data = {
+      user_id: userId,
+      session_id,
+      booking_date,
+      total_people,
+    };
 
-    } catch (error) {
-        // Error khusus jika sesi booking tidak valid
-        if (error.message === "Session not found") {
-            return res.status(404).json({ message: "Sesi tidak ditemukan" });
-        }
+    const result = await BookingModel.create(data);
 
-        res.status(500).json({ message: "Server Error saat membuat booking" });
-    }
+    res.json({
+      message: "Booking created successfully",
+      bookingId: result.insertId
+    });
+
+  } catch (error) {
+    console.error("CREATE BOOKING ERROR:", error); // PENTING
+
+    res.status(500).json({
+      message: error.message || "Server Error saat membuat booking"
+    });
+  }
 };
+
 
 /*
     Controller: Mendapatkan booking berdasarkan ID.

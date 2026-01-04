@@ -28,6 +28,9 @@ export default function RootLayout() {
           <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
           <Stack.Screen name="blog" options={{ headerShown: false }} />
+          <Stack.Screen name="spot" options={{ headerShown: false }} />
+          <Stack.Screen name="equipment" options={{ headerShown: false }} />
+           <Stack.Screen name="booking" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

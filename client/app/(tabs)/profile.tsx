@@ -69,7 +69,7 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.container}>
         <View style={[styles.topBar, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
+            <Ionicons name="arrow-back" size={30} color={COLORS.white} />
           </TouchableOpacity>
 
           <Text style={styles.topTitle}>Profile</Text>
@@ -124,10 +124,15 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
-        <View style={{ width: 24 }} />
-        <Text style={styles.topTitle}>Profile</Text>
-        <View style={{ width: 24 }} />
-      </View>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={30} color={COLORS.white} />
+          </TouchableOpacity>
+
+          <Text style={styles.topTitle}>Profile</Text>
+
+          {/* spacer supaya title tetap center */}
+          <View style={{ width: 24 }} />
+        </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* PROFILE HEADER */}
@@ -178,20 +183,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
   topBar: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+    backgroundColor: "#014b69",
   },
+
   topTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: COLORS.textMain,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
   },
 
   profileHeader: {

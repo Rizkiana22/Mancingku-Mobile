@@ -11,7 +11,7 @@ import {
   Image, // Tambah Image component
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 // Mengambil variabel environment
@@ -51,23 +51,74 @@ const HeaderSection = ({ onProfilePress }: { onProfilePress: () => void }) => (
   </View>
 );
 
-const PromoBanner = ({ onPress }: { onPress: () => void }) => (
-  <View style={styles.bannerContainer}>
-    <View style={styles.bannerContent}>
-      <Text style={styles.bannerTitle}>Cuaca Cerah ☀️</Text>
-      <Text style={styles.bannerDesc}>Waktu terbaik untuk booking.</Text>
-      <TouchableOpacity style={styles.bannerButton} onPress={onPress}>
-        <Text style={styles.bannerButtonText}>Lihat</Text>
-      </TouchableOpacity>
+type Greeting = {
+  title: string;
+  desc: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+const getGreeting = (): Greeting => {
+  const hour = new Date().getHours();
+
+  if (hour >= 5 && hour < 11) {
+    return {
+      title: "Selamat Pagi",
+      desc: "Pagi cerah, waktu terbaik untuk mulai memancing.",
+      icon: "sunny",
+    };
+  }
+
+  if (hour >= 11 && hour < 15) {
+    return {
+      title: "Selamat Siang",
+      desc: "Cuaca lagi bagus, cocok buat mancing santai.",
+      icon: "partly-sunny",
+    };
+  }
+
+  if (hour >= 15 && hour < 18) {
+    return {
+      title: "Selamat Sore ",
+      desc: "Waktu terakhir sebelum pemancingan tutup.",
+      icon: "cloudy",
+    };
+  }
+
+  return {
+    title: "Selamat Malam",
+    desc: "Saatnya istirahat dan rencanakan mancing besok.",
+    icon: "moon",
+  };
+
+
+
+};
+
+
+const PromoBanner = ({ onPress }: { onPress: () => void }) => {
+  const greeting = getGreeting();
+
+  return (
+    <View style={styles.bannerContainer}>
+      <View style={styles.bannerContent}>
+        <Text style={styles.bannerTitle}>{greeting.title}</Text>
+        <Text style={styles.bannerDesc}>{greeting.desc}</Text>
+
+        <TouchableOpacity style={styles.bannerButton} onPress={onPress}>
+          <Text style={styles.bannerButtonText}>Lihat</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Ionicons
+        name={greeting.icon}
+        size={90}
+        color="rgba(199, 152, 0, 0.2)"
+        style={styles.bannerIcon}
+      />
     </View>
-    <Ionicons
-      name="sunny"
-      size={90}
-      color="rgba(255,255,255,0.2)"
-      style={styles.bannerIcon}
-    />
-  </View>
-);
+  );
+};
+
 
 const QuickMenuItem = ({
   label,
@@ -80,6 +131,8 @@ const QuickMenuItem = ({
     <View style={[styles.iconCircle, { backgroundColor: color + "20" }]}>
       {iconType === "material" ? (
         <MaterialCommunityIcons name={icon} size={28} color={color} />
+      ) : iconType === "fontawesome" ? (
+        <FontAwesome6 name={icon} size={26} color={color} />
       ) : (
         <Ionicons name={icon} size={28} color={color} />
       )}
@@ -87,7 +140,6 @@ const QuickMenuItem = ({
     <Text style={styles.menuText}>{label}</Text>
   </TouchableOpacity>
 );
-
 // === NEW COMPONENT: BLOG CARD ===
 // Komponen kecil khusus untuk kartu blog
 const BlogCard = ({ title, date, image, onPress }: any) => (
@@ -105,7 +157,7 @@ const BlogCard = ({ title, date, image, onPress }: any) => (
     </View>
   </TouchableOpacity>
 );
- 
+
 // ============================================================================
 // MAIN SCREEN COMPONENT
 // ============================================================================
@@ -125,7 +177,7 @@ export default function HomeScreen() {
           SpotService.getPopular(),
           BlogService.getAll(),
         ]);
-          
+
         // 1. MAPPING DATA SPOTS
         const mappedSpots = spotsRes.data.map((item: any) => ({
           id: item.id,
@@ -196,17 +248,25 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(tabs)/spot")}
               />
               <QuickMenuItem
-                label="Aktivitas"
-                icon="ticket"
-                color="#E91E63"
-                onPress={() => router.push("/(tabs)/aktivitas")}
-              />
-              <QuickMenuItem
                 label="Perlengkapan"
                 icon="hook"
                 iconType="material"
                 color={COLORS.accent}
                 onPress={() => router.push("/(tabs)/perlengkapan")}
+              />
+              <QuickMenuItem
+                label="Aktivitas"
+                icon="ticket"
+                color="#E91E63"
+                onPress={() => router.push("/(tabs)/aktivitas")}
+              />
+
+              <QuickMenuItem
+                label="Artikel"
+                icon="newspaper"
+                iconType="fontawesome"
+                color="#4CAF50"
+                onPress={() => router.push("/blog")}
               />
             </View>
           </View>
@@ -236,11 +296,11 @@ export default function HomeScreen() {
                   location={spot.location}
                   rating={spot.rating}
                   imageSource={spot.imageSource}
-                  
+
                   onPress={() => {
                     console.log('Spot pressed:', spot);
                     console.log('Slug:', spot.slug);
-                    
+
                     router.push(`/spot/${spot.slug}` as any);
                   }}
                 />
@@ -250,7 +310,7 @@ export default function HomeScreen() {
 
           {/* === SECTION: BLOG / TIPS MANCING (BARU) === */}
           <View style={[styles.sectionHeader, { marginTop: 10 }]}>
-            <Text style={styles.sectionTitle}>Tips & Artikel Mancing</Text>
+            <Text style={styles.sectionTitle}>Blog & Artikel Mancing</Text>
             {/* Tombol kecil jika user ingin lihat semua blog */}
             {/* <TouchableOpacity onPress={() => router.push('/blog')}>
                 <Text style={styles.seeAllText}>Lihat Semua</Text>
@@ -334,7 +394,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   bannerButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 12 },
-  bannerIcon: { position: "absolute", right: -10, bottom: -10 },
+  bannerIcon: { position: "absolute", right: 5, bottom: -5 },
 
   // Menu
   menuCard: {
@@ -351,7 +411,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  menuItem: { width: (width - 80) / 3, alignItems: "center" },
+  menuItem: { width: (width - 80) / 4, alignItems: "center" },
   iconCircle: {
     width: 50,
     height: 50,
@@ -360,7 +420,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  menuText: { fontSize: 14, fontWeight: "600", color: COLORS.primary },
+  menuText: { fontSize: 12, fontWeight: "600", color: COLORS.primary },
 
   // Section Headers
   sectionHeader: {

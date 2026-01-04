@@ -13,6 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SpotService, SessionService } from "@/service/api";
 import { API_URL } from "@env";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 
 // ============================================================================
 // COLORS
@@ -33,9 +35,14 @@ export default function SpotDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
 
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
+
   const [spot, setSpot] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const insets = useSafeAreaInsets();
+
 
   useEffect(() => {
     if (!slug) return;
@@ -84,7 +91,7 @@ export default function SpotDetailScreen() {
   // MAIN UI
   // ==========================================================================
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root}>
       {/* HEADER IMAGE */}
       <View style={styles.imageWrapper}>
         <Image
@@ -150,44 +157,70 @@ export default function SpotDetailScreen() {
 
             {/* Sessions */}
             <Text style={styles.sectionTitle}>Pilih Sesi</Text>
-            {sessions.map((s) => (
-              <View key={s.id} style={styles.sessionCard}>
-                <View>
-                  <Text style={styles.sessionName}>{s.session_name}</Text>
-                  <Text style={styles.sessionTime}>
-                    {s.start_time} - {s.end_time}
-                  </Text>
-                  <Text style={styles.sessionPrice}>
-                    Rp {Number(s.price).toLocaleString("id-ID")}
-                  </Text>
-                  <Text style={styles.sessionSeat}>
-                    Sisa kursi: {s.seats_left}
-                  </Text>
-                </View>
+              {sessions.map((s) => {
+                const isSelected = selectedSession?.id === s.id;
+                const isDisabled = s.seats_left <= 0;
 
-                <TouchableOpacity
-                  style={[
-                    styles.bookButton,
-                    s.seats_left <= 0 && styles.bookButtonDisabled,
-                  ]}
-                  disabled={s.seats_left <= 0}
-                  // onPress={() =>
-                  //   router.push({
-                  //     pathname: "/booking",
-                  //     params: { sessionId: s.id },
-                  //   })
-                  // }
-                >
-                  <Text style={styles.bookButtonText}>
-                    {s.seats_left <= 0 ? "Penuh" : "Pesan"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+                return (
+                  <TouchableOpacity
+                    key={s.id}
+                    activeOpacity={0.8}
+                    disabled={isDisabled}
+                    onPress={() => setSelectedSession(s)}
+                    style={[
+                      styles.sessionCard,
+                      isSelected && styles.sessionCardSelected,
+                      isDisabled && styles.sessionCardDisabled,
+                    ]}
+                  >
+                    <View>
+                      <Text style={styles.sessionName}>{s.session_name}</Text>
+                      <Text style={styles.sessionTime}>
+                        {s.start_time} - {s.end_time}
+                      </Text>
+                      <Text style={styles.sessionPrice}>
+                        Rp {Number(s.price).toLocaleString("id-ID")}
+                      </Text>
+                      <Text style={styles.sessionSeat}>
+                        Sisa kursi: {s.seats_left}
+                      </Text>
+                    </View>
+
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color={COLORS.accent}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
           </View>
+
+          {/* Button */}
+          <TouchableOpacity
+            style={[
+              styles.ctaButton,
+              !selectedSession && styles.ctaButtonDisabled,
+            ]}
+            disabled={!selectedSession}
+            onPress={() => {
+              router.push({
+                pathname: "/booking/[sessionId]",
+                params: {
+                  sessionId: selectedSession.id,
+                },
+              });
+            }}
+          >
+            <Text style={styles.ctaButtonText}>
+              Lanjutkan Pemesanan
+            </Text>
+          </TouchableOpacity> 
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -285,6 +318,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 25,
     marginBottom: 16,
   },
 
@@ -367,4 +401,32 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "600",
   },
+
+  sessionCardSelected: {
+  borderColor: COLORS.accent,
+  backgroundColor: "#fff7e6",
+},
+
+sessionCardDisabled: {
+  opacity: 0.5,
+},
+
+ctaButton: {
+  marginTop: 16,
+  backgroundColor: COLORS.accent,
+  paddingVertical: 14,
+  borderRadius: 12,
+  alignItems: "center",
+},
+
+ctaButtonDisabled: {
+  backgroundColor: "#ccc",
+},
+
+ctaButtonText: {
+  color: COLORS.white,
+  fontWeight: "bold",
+  fontSize: 16,
+},
+
 });

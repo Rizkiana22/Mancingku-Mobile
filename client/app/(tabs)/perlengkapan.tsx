@@ -46,22 +46,6 @@ const MENU_CATEGORIES = [
     route: "/equipment/alat",
     isActive: true,
   },
-  {
-    id: "3",
-    title: "Pakaian",
-    subtitle: "Jersey & Topi",
-    icon: "shirt" as const,
-    route: "/equipment/clothing",
-    isActive: false, // Fitur belum siap
-  },
-  {
-    id: "4",
-    title: "Aksesoris",
-    subtitle: "Tas, Box, Jaring",
-    icon: "briefcase" as const,
-    route: "/equipment/accessories",
-    isActive: false, // Fitur belum siap
-  },
 ];
 
 // ============================================================================

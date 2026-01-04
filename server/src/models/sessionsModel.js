@@ -74,7 +74,38 @@ const SessionModel = {
     const sql = "SELECT start_time, end_time FROM spots WHERE id = ?";
     const [rows] = await db.execute(sql, [spotId]);
     return rows[0];
-  }
+  },
+
+  getDetailById: async (sessionId, date = null) => {
+    const targetDate = date || new Date().toISOString().split("T")[0];
+
+    const sql = `
+      SELECT 
+        s.id,
+        s.session_name,
+        s.start_time,
+        s.end_time,
+        s.price,
+        s.capacity,
+        sp.id AS spot_id,
+        sp.name AS spot_name,
+        sp.address,
+        (s.capacity - COALESCE(SUM(b.total_people), 0)) AS seats_left
+      FROM sessions s
+      JOIN spots sp ON sp.id = s.spot_id
+      LEFT JOIN bookings b 
+        ON b.session_id = s.id
+        AND b.status IN ('pending', 'paid')
+        AND b.booking_date = ?
+      WHERE s.id = ?
+      GROUP BY s.id
+      LIMIT 1
+    `;
+    const [rows] = await db.execute(sql, [targetDate, sessionId]);
+    // console.log("QUERY RESULT:", rows);
+    return rows[0];
+    
+  },
 };
 
 export default SessionModel;

@@ -63,3 +63,25 @@ export const getOperationalHours = async (req, res) => {
         res.status(500).json({ message: "Error" });
     }
 };
+
+export const getSessionDetail = async (req, res) => {  
+  try {
+    
+    const sessionId = req.params.id;
+    const date = req.query.date;
+
+    // console.log("GET SESSION DETAIL ID:", sessionId);
+    // console.log("DATE:", date);
+
+    const session = await SessionModel.getDetailById(sessionId, date);
+
+    if (!session) {
+      return res.status(404).json({ message: "Sesi tidak ditemukan" });
+    }
+
+    res.json(session);
+  } catch (error) {
+    // console.error("ERROR getSessionDetail:", error);
+    res.status(500).json({ message: "Server Error saat mengambil detail sesi" });
+  }
+};

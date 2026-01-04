@@ -8,16 +8,27 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import RenderHTML from "react-native-render-html";
 import { BlogService } from "@/service/api";
 import { API_URL } from "@env";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+/**
+ * Interface BlogPost
+ * Menyamakan tipe data dengan halaman Perlengkapan agar tidak pakai 'any'.
+ */
+interface BlogPost {
+  id: number;
+  title: string;
+  author: string;
+  content: string;
+  image: string;
+  created_at: string;
+}
 
 export default function BlogDetailPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -25,22 +36,49 @@ export default function BlogDetailPage() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
+  // === STATE MANAGEMENT ===
   const [loading, setLoading] = useState(true);
-  const [post, setPost] = useState<any>(null);
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await BlogService.getBySlug(String(slug));
-        const data = res.data?.data ?? res.data ?? null;
-        setPost(data);
-      } catch {
-        setPost(null);
-      } finally {
-        setLoading(false);
+  /**
+   * fetchPost
+   * Fungsi ambil data dipisah (seperti fetchGears di halaman alat).
+   * Lebih rapi dan handle error lebih jelas.
+   */
+  const fetchPost = async () => {
+    try {
+      const response = await BlogService.getBySlug(String(slug));
+
+      // === VALIDASI RESPONSE ===
+      // Mirip dengan logic di PerlengkapanScreen
+      if (response.data && response.data.data) {
+        setPost(response.data.data);
+      } else {
+        setPost(response.data);
       }
-    })();
+    } catch (error) {
+      console.error("Gagal mengambil detail blog:", error);
+      setPost(null);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Lifecycle: Jalan sekali pas mount
+  useEffect(() => {
+    fetchPost();
   }, [slug]);
+
+  /**
+   * onRefresh
+   * Fitur tarik layar untuk refresh
+   */
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPost();
+  };
 
   const metaDate = useMemo(() => {
     if (!post?.created_at) return "";
@@ -90,7 +128,7 @@ export default function BlogDetailPage() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator size="large" color="#014b69" />
       </View>
     );
   }
@@ -99,6 +137,9 @@ export default function BlogDetailPage() {
     return (
       <View style={styles.center}>
         <Text style={{ fontSize: 16 }}>Artikel tidak ditemukan</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
+          <Text style={{ color: "#014b69", fontWeight: "bold" }}>Kembali</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -123,14 +164,26 @@ export default function BlogDetailPage() {
       </View>
 
       {/* ================= CONTENT ================= */}
-      <ScrollView style={styles.page} contentContainerStyle={styles.wrapper}>
+      <ScrollView
+        style={styles.page}
+        contentContainerStyle={styles.wrapper}
+        // Tambahan RefreshControl biar bisa ditarik
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <Text style={styles.h1}>{post.title}</Text>
 
         <Text style={styles.meta}>
           {post.author} · {metaDate}
         </Text>
 
-        <Image source={{ uri: coverUrl }} style={styles.coverImg} />
+        <Image
+          source={{ uri: coverUrl }}
+          style={styles.coverImg}
+          // Tambah resizeMode biar aman
+          resizeMode="cover"
+        />
 
         <RenderHTML
           contentWidth={Math.min(width, 900) - 32}

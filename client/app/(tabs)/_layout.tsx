@@ -2,6 +2,8 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 
 // ============================================================================
 // 1. KONFIGURASI WARNA (THEME CONFIG)
@@ -31,35 +33,31 @@ const TabBarIcon = ({ name, color }: { name: IconName; color: string }) => (
 // 3. MAIN LAYOUT
 // ============================================================================
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   return (
-    <Tabs
-      // screenOptions: Pengaturan default yang berlaku untuk SEMUA tab di bawah ini.
+     <Tabs
       screenOptions={{
-        // --- Pewarnaan ---
-        tabBarActiveTintColor: COLORS.accent, // Warna icon/text saat tab DIPILIH
-        tabBarInactiveTintColor: COLORS.inactive, // Warna icon/text saat tab TIDAK dipilih
+        tabBarActiveTintColor: COLORS.accent,
+        tabBarInactiveTintColor: COLORS.inactive,
 
-        // --- Styling Kotak Tab Bar (Bawah) ---
         tabBarStyle: {
-          paddingBottom: 5, // Memberi jarak sedikit dari bawah layar
-          height: 60, // Tinggi tab bar (sedikit lebih besar agar mudah disentuh)
-          backgroundColor: COLORS.tabBarBg, // Background tab bar
-          borderTopWidth: 0, // Menghilangkan garis batas atas (opsional, untuk tampilan lebih clean)
+          paddingBottom: insets.bottom,   // 🔥 ini baru kepakai
+          height: 60 + insets.bottom,     // 🔥 aman dari tombol Android
+          backgroundColor: COLORS.tabBarBg,
+          borderTopWidth: 0,
         },
 
-        // --- Styling Teks Label Tab ---
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "500",
         },
 
-        // --- Styling Header (Atas) ---
-        // Catatan: Ini hanya muncul jika headerShown: true pada tiap screen
         headerStyle: { backgroundColor: COLORS.primary },
         headerTintColor: COLORS.headerText,
         headerTitleStyle: { fontWeight: "bold" },
       }}
     >
+
       {/* PENTING: Properti 'name' harus sesuai dengan nama file di folder app/(tabs)/
          Contoh: name="beranda" -> akan me-load file app/(tabs)/beranda.tsx
       */}

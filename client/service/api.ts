@@ -12,6 +12,9 @@ const api = axios.create({
   },
 });
 
+
+
+
 // === SPOTS (Pake 's') ===
 export const SpotService = {
   getAll: () => api.get("/spots"),
@@ -26,6 +29,10 @@ export const SessionService = {
   getNextPrice: (spotId: number) => api.get(`/sessions/${spotId}/next`),
   getHours: (spotId: number) =>
     api.get(`/sessions/${spotId}/operational-hours`),
+  getDetail: (sessionId: number, date?: string) =>
+    api.get(`/sessions/detail/${sessionId}`, {
+      params: date ? { date } : {},
+    }),
 };
 
 // === BAIT / UMPAN (Tunggal: /bait) ===

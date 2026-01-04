@@ -15,13 +15,13 @@ const BookingModel = {
     create: async (data) => {
         // Ambil informasi sesi: waktu dan harga
         const sessionSql = `
-            SELECT start_time, end_time, price
-            FROM sessions
-            WHERE id = ? 
+            SELECT s.start_time, s.end_time, s.price, s.spot_id
+            FROM sessions s
+            WHERE s.id = ?
             LIMIT 1
         `;
         const [sessionRows] = await db.execute(sessionSql, [data.session_id]);
-
+        
         // Jika sesi tidak ditemukan
         if (sessionRows.length === 0) {
             throw new Error("Session not found");
@@ -29,12 +29,15 @@ const BookingModel = {
 
         const session = sessionRows[0];
 
+        // Simpan spot id
+        const spotId = session.spot_id;
+
         // Perhitungan total biaya
         const totalAmount = session.price * data.total_people;
 
         // Total gears opsional, default 0
         const total_gears = data.total_gears || 0;
-
+        
         // Query insert booking baru
         const insertSql = `
             INSERT INTO bookings
@@ -44,7 +47,7 @@ const BookingModel = {
 
         const [result] = await db.execute(insertSql, [
             data.user_id,
-            data.spot_id,
+            spotId,
             data.session_id,
             data.booking_date,
             data.total_people,

@@ -70,7 +70,7 @@ export default function Login() {
       {/* ================= TOP BAR ================= */}
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
+          <Ionicons name="arrow-back" size={30} color={COLORS.white} />
         </TouchableOpacity>
 
         <Text style={styles.topTitle}>Login</Text>
@@ -145,14 +145,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+    backgroundColor: "#014b69",
   },
   topTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: COLORS.textMain,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
   },
 
   content: {

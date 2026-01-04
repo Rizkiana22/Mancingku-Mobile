@@ -9,18 +9,22 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { AuthService } from "@/service/api";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Konstanta warna (konsisten sama Login)
 const COLORS = {
   primary: "#014b69",
   white: "#ffffff",
+  background: "#f0f2f5",
   textMuted: "#666666",
   danger: "#d32f2f",
 };
 
 export default function Register() {
   const router = useRouter();
+    const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +55,7 @@ export default function Register() {
       const { data } = response;
       console.log("REGISTER SUCCESS:", data);
 
-      Alert.alert("Berhasil 🎉", "Registrasi berhasil, silakan login", [
+      Alert.alert("Registrasi berhasil, silakan login", [
         {
           text: "OK",
           onPress: () => router.replace("/auth/login"),
@@ -73,12 +77,25 @@ export default function Register() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Daftar Akun 🎣</Text>
-        <Text style={styles.subtitle}>Buat akun untuk mulai booking spot</Text>
+  <SafeAreaView style={styles.container}>
+    {/* ===== TOP BAR ===== */}
+    <View style={[styles.topBar, { paddingTop: insets.top }]}>
+      <TouchableOpacity onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={30} color={COLORS.white} />
+      </TouchableOpacity>
 
-        {/* Email */}
+      <Text style={styles.topTitle}>Daftar</Text>
+      <View style={{ width: 24 }} />
+    </View>
+
+    {/* ===== CONTENT (SAMA KAYA LOGIN) ===== */}
+    <View style={styles.content}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Daftar Akun</Text>
+        <Text style={styles.subtitle}>
+          Buat akun untuk mulai booking spot
+        </Text>
+
         <TextInput
           placeholder="Email"
           value={email}
@@ -88,7 +105,6 @@ export default function Register() {
           style={styles.input}
         />
 
-        {/* Password */}
         <TextInput
           placeholder="Password"
           value={password}
@@ -97,7 +113,6 @@ export default function Register() {
           style={styles.input}
         />
 
-        {/* Konfirmasi Password */}
         <TextInput
           placeholder="Konfirmasi Password"
           value={confirmPassword}
@@ -106,7 +121,6 @@ export default function Register() {
           style={styles.input}
         />
 
-        {/* Button Register */}
         <TouchableOpacity
           style={styles.button}
           onPress={handleRegister}
@@ -119,7 +133,6 @@ export default function Register() {
           )}
         </TouchableOpacity>
 
-        {/* Link ke Login */}
         <TouchableOpacity
           style={{ marginTop: 20 }}
           onPress={() => router.replace("/auth/login")}
@@ -130,17 +143,40 @@ export default function Register() {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  </SafeAreaView>
+);
+
 }
 
 // Styles (konsisten sama Login)
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "#f0f2f5",
-    padding: 20,
+  flex: 1,
+  backgroundColor: COLORS.background,
+},
+
+   topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    backgroundColor: "#014b69",
   },
+  topTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
+  },
+
+  content: {
+  flex: 1,
+  justifyContent: "center",
+  padding: 20,
+},
+
   card: {
     backgroundColor: COLORS.white,
     padding: 30,
