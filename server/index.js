@@ -26,6 +26,7 @@ const port = 3000;
 app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
+
 app.use(cors({
   origin: '*', // Saat production, ubah ke domain frontend yang valid
   methods: ['GET', 'POST', 'PUT', 'DELETE']
