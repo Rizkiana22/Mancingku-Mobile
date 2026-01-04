@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SpotService, SessionService } from "@/service/api";
+import { API_URL } from "@env";
 
 // ============================================================================
 // COLORS
@@ -88,7 +89,7 @@ export default function SpotDetailScreen() {
       <View style={styles.imageWrapper}>
         <Image
           source={{
-            uri: `https://dorsey-prefamous-nontransitionally.ngrok-free.dev/assets/spots/${spot.image}`,
+            uri: `${API_URL}/assets/spots/${spot.image}`,
           }}
           style={styles.image}
           resizeMode="cover"
