@@ -79,7 +79,7 @@ const SpotModel = {
    */
   getPopular: async (limit = 5) => {
     const sql = `
-      SELECT id, name, address, image, rating
+      SELECT id, name, address, image, rating, slug
       FROM spots
       ORDER BY rating DESC
       LIMIT ?

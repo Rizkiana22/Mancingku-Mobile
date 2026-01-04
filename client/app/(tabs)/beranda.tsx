@@ -105,7 +105,7 @@ const BlogCard = ({ title, date, image, onPress }: any) => (
     </View>
   </TouchableOpacity>
 );
-
+ 
 // ============================================================================
 // MAIN SCREEN COMPONENT
 // ============================================================================
@@ -125,7 +125,7 @@ export default function HomeScreen() {
           SpotService.getPopular(),
           BlogService.getAll(),
         ]);
-
+          
         // 1. MAPPING DATA SPOTS
         const mappedSpots = spotsRes.data.map((item: any) => ({
           id: item.id,
@@ -231,16 +231,17 @@ export default function HomeScreen() {
             ) : (
               popularSpots.map((spot) => (
                 <SpotHighlightCard
-                  key={spot.id}
+                  key={spot.slug}
                   title={spot.title}
                   location={spot.location}
                   rating={spot.rating}
                   imageSource={spot.imageSource}
+                  
                   onPress={() => {
-                    router.push({
-                      pathname: "/spot/[slug]",
-                      params: { slug: spot.slug },
-                    });
+                    console.log('Spot pressed:', spot);
+                    console.log('Slug:', spot.slug);
+                    
+                    router.push(`/spot/${spot.slug}` as any);
                   }}
                 />
               ))
