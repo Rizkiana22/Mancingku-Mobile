@@ -64,24 +64,35 @@ export const getBookingById = async (req, res) => {
     - Jika tidak ada baris yang terpengaruh, berarti ID tidak valid.
 */
 export const updateStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
 
-        const result = await BookingModel.updateStatus(id, "paid");
+    const booking = await BookingModel.getById(id);
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: "Booking tidak ditemukan atau tidak ada perubahan"
-            });
-        }
-
-        res.json({ message: "Status booking berhasil diupdate menjadi PAID" });
-
-    } catch (error) {
-        console.error("UPDATE STATUS ERROR:", error);
-        res.status(500).json({ message: "Gagal update status" });
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan" });
     }
+
+    // ⛔ Cek kepemilikan
+    if (booking.user_id !== userId) {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    if (booking.status === "paid") {
+      return res.json({ message: "Booking sudah dibayar" });
+    }
+
+    await BookingModel.updateStatus(id, "paid");
+
+    res.json({ message: "Pembayaran berhasil" });
+
+  } catch (error) {
+    console.error("UPDATE STATUS ERROR:", error);
+    res.status(500).json({ message: "Gagal update status" });
+  }
 };
+
 
 /*
     Controller: Mengambil semua booking 'paid' milik user tertentu.

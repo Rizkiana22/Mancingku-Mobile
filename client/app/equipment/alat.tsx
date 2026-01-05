@@ -108,7 +108,7 @@ export default function PerlengkapanScreen() {
           <Ionicons name="arrow-back" size={30} color="#fff" />
         </TouchableOpacity>
 
-        <Text style={styles.topTitle}>Perlengkapan</Text>
+        <Text style={styles.topTitle}>Alat Pancing</Text>
 
         {/* spacer biar title center */}
         <View style={{ width: 24 }} />

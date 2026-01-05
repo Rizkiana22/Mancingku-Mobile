@@ -12,9 +12,6 @@ const api = axios.create({
   },
 });
 
-
-
-
 // === SPOTS (Pake 's') ===
 export const SpotService = {
   getAll: () => api.get("/spots"),
@@ -27,8 +24,11 @@ export const SpotService = {
 export const SessionService = {
   getBySpot: (spotId: number) => api.get(`/sessions/${spotId}`),
   getNextPrice: (spotId: number) => api.get(`/sessions/${spotId}/next`),
-  getHours: (spotId: number) =>
+  getOperationalHours: (spotId: number) =>
     api.get(`/sessions/${spotId}/operational-hours`),
+  getNextSession: (spotId: number) => {
+    return api.get(`/sessions/${spotId}/next-session`);
+  },
   getDetail: (sessionId: number, date?: string) =>
     api.get(`/sessions/detail/${sessionId}`, {
       params: date ? { date } : {},
@@ -68,6 +68,10 @@ export const BookingService = {
     }),
   getById: (id: number, token: string) =>
     api.get(`/booking/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  pay: (id: number, token: string) =>
+    api.patch(`/booking/${id}/pay`, {}, {
       headers: { Authorization: `Bearer ${token}` },
     }),
 };

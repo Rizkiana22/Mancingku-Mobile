@@ -46,7 +46,7 @@ const UserModel = {
             FROM users 
             WHERE id = ?
         `;
-        
+
         // Mengambil baris hasil query, destructuring supaya langsung dapat array rows
         const [rows] = await dbPool.execute(sql, [id]);
 
@@ -61,19 +61,25 @@ const UserModel = {
      * agar tidak terjadi perubahan role atau email sembarangan.
      */
     update: async (id, data) => {
-        const { name, phone } = data;
+    const user = await UserModel.findById(id);
 
-        const sql = `
-            UPDATE users 
-            SET name = ?, phone = ? 
-            WHERE id = ?
-        `;
-
-        // Parameter pada array wajib sesuai urutan tanda tanya pada query
-        const [result] = await dbPool.execute(sql, [name, phone, id]);
-        
-        return result;
+    if (!user) {
+        throw new Error("User tidak ditemukan");
     }
+
+    const sql = `
+        UPDATE users 
+        SET name = ?, phone = ?
+        WHERE id = ?
+    `;
+
+    await dbPool.execute(sql, [
+        data.name ?? user.name,
+        data.phone ?? user.phone,
+        id
+    ]);
+}
+
 }
 
 export default UserModel;

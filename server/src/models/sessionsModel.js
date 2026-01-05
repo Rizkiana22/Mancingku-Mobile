@@ -66,16 +66,6 @@ const SessionModel = {
     return rows[0];
   },
 
-  /**
-   * Mengambil jam operasional untuk suatu spot.
-   * Biasanya dipakai untuk menampilkan range waktu di UI atau validasi booking.
-   */
-  getOperationalHours: async (spotId) => {
-    const sql = "SELECT start_time, end_time FROM spots WHERE id = ?";
-    const [rows] = await db.execute(sql, [spotId]);
-    return rows[0];
-  },
-
   getDetailById: async (sessionId, date = null) => {
     const targetDate = date || new Date().toISOString().split("T")[0];
 

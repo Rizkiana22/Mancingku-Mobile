@@ -86,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="perlengkapan"
         options={{
-          title: "Alat",
+          title: "Perlengkapan",
           headerShown: false,
           // Menggunakan 'MaterialCommunityIcons' khusus di sini karena icon 'hook' (kail) lebih bagus di set ini
           tabBarIcon: ({ color }) => (

@@ -47,10 +47,16 @@ export default function BookingSession() {
   // ROUTING & AUTH CONTEXT
   // ==========================================================================
   // sessionId diambil dari URL (dynamic route: /booking/[sessionId])
-  const { sessionId } = useLocalSearchParams();
+  const { spotId } = useLocalSearchParams<{ spotId: string }>();
 
   // user & loading berasal dari global auth state
   const { user, loading } = useAuth();
+
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
+
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  const params = useLocalSearchParams();
 
   // ==========================================================================
   // STATE MANAGEMENT
@@ -67,7 +73,6 @@ export default function BookingSession() {
   const [submitting, setSubmitting] = useState(false);
 
   // session: Detail sesi dari backend (kursi, harga, jam, dll)
-  const [session, setSession] = useState<any>(null);
   const [loadingSession, setLoadingSession] = useState(true);
 
   // Control visibilitas DatePicker
@@ -88,19 +93,22 @@ export default function BookingSession() {
   // - tanggal berubah (untuk cek ketersediaan kursi per tanggal)
   // ==========================================================================
   useEffect(() => {
-    if (!sessionId) return;
+    if (!spotId) return;
 
     setLoadingSession(true);
 
-    SessionService
-      .getDetail(Number(sessionId), date || undefined)
-      .then(res => setSession(res.data))
-      .catch(() => {
-        // Defensive UX: Jangan biarkan screen kosong tanpa feedback
-        Alert.alert("Error", "Detail sesi tidak ditemukan");
+    SessionService.getBySpot(Number(spotId))
+      .then(res => {
+        setSessions(res.data);
       })
-      .finally(() => setLoadingSession(false));
-  }, [sessionId, date]);
+      .catch(err => {
+        Alert.alert("Error", "Gagal memuat sesi");
+        console.error(err);
+      })
+      .finally(() => {
+        setLoadingSession(false);
+      });
+  }, [spotId]);
 
   // ==========================================================================
   // AUTH GUARD
@@ -118,52 +126,55 @@ export default function BookingSession() {
   // SUBMIT HANDLER
   // ==========================================================================
   const submit = async () => {
-    // Validasi basic di client untuk UX cepat
-    if (!date || Number(people) <= 0) {
-      Alert.alert("Error", "Data tidak valid");
+  // ================= VALIDASI =================
+  if (!date || Number(people) <= 0) {
+    Alert.alert("Error", "Data tidak valid");
+    return;
+  }
+
+  if (!selectedSession) {
+    Alert.alert("Error", "Pilih sesi terlebih dahulu");
+    return;
+  }
+
+  if (selectedSession.seats_left < Number(people)) {
+    Alert.alert("Penuh", "Kursi tidak mencukupi");
+    return;
+  }
+
+  try {
+    setSubmitting(true);
+
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      router.replace("/auth/login");
       return;
     }
 
-    // Validasi bisnis: kursi tidak mencukupi
-    if (session && session.seats_left < Number(people)) {
-      Alert.alert("Penuh", "Kursi tidak mencukupi");
-      return;
-    }
+    // ================= CREATE BOOKING =================
+    const res = await BookingService.create(
+      {
+        session_id: selectedSession.id,
+        booking_date: date,
+        total_people: Number(people),
+      },
+      token
+    );
 
-    try {
-      setSubmitting(true);
+    const bookingId = res.data.bookingId; 
 
-      // Ambil token dari storage lokal
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        // Token hilang → anggap sesi expired
-        router.replace("/auth/login");
-        return;
-      }
+    // ================= KE PAYMENT =================
+   router.replace(`/payment?bookingId=${bookingId}`);
 
-      // Create booking via service
-      await BookingService.create(
-        {
-          session_id: Number(sessionId),
-          booking_date: date,
-          total_people: Number(people),
-        },
-        token
-      );
-
-      Alert.alert("Sukses", "Booking berhasil dibuat");
-      router.replace("/profile");
-    } catch (err: any) {
-      // Fallback error message jika backend tidak konsisten
-      Alert.alert(
-        "Gagal",
-        err.response?.data?.message || "Booking gagal"
-      );
-    } finally {
-      // Pastikan state submit selalu dibersihkan
-      setSubmitting(false);
-    }
-  };
+  } catch (err: any) {
+    Alert.alert(
+      "Gagal",
+      err.response?.data?.message || "Booking gagal"
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // ==========================================================================
   // DERIVED STATE
@@ -174,7 +185,17 @@ export default function BookingSession() {
   // - session tidak valid
   // - kursi habis
   const disableSubmit =
-    submitting || loadingSession || !session || session.seats_left <= 0;
+  submitting ||
+  loadingSession ||
+  !selectedSession ||
+  selectedSession.seats_left <= 0;
+
+  // Total Harga
+  // - Total harga dari sesi * jumlah orang
+  const totalPrice =
+  selectedSession && Number(people) > 0
+    ? selectedSession.price * Number(people)
+    : 0;
 
   // ==========================================================================
   // UI
@@ -202,25 +223,38 @@ export default function BookingSession() {
         </TouchableOpacity>
 
             {/* ============================================================ */}
-            {/* SESSION CARD */}
+            {/* DETAIL SESI (HANYA JIKA DIPILIH) */}
             {/* ============================================================ */}
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Detail Sesi</Text>
+            {selectedSession ? (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Detail Sesi</Text>
 
-              <Text style={styles.sessionName}>{session.spot_name}</Text>
-              <Text style={styles.sessionTime}>
-                {session.session_name} • {session.start_time} - {session.end_time}
-              </Text>
+                <Text style={styles.sessionName}>
+                  {selectedSession.session_name}
+                </Text>
 
-              <View style={styles.divider} />
+                <Text style={styles.sessionTime}>
+                  {selectedSession.start_time} - {selectedSession.end_time}
+                </Text>
 
-              <Text style={styles.sessionPrice}>
-                Rp {Number(session.price).toLocaleString("id-ID")}
-              </Text>
-              <Text style={styles.sessionSeat}>
-                Sisa kursi: {session.seats_left}
-              </Text>
-            </View>
+                <View style={styles.divider} />
+
+                <Text style={styles.sessionPrice}>
+                  Rp {Number(selectedSession.price).toLocaleString("id-ID")}
+                </Text>
+
+                <Text style={styles.sessionSeat}>
+                  Sisa kursi: {selectedSession.seats_left}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Detail Sesi</Text>
+                <Text style={{ color: COLORS.textMuted }}>
+                  Silakan pilih sesi terlebih dahulu
+                </Text>
+              </View>
+            )}
 
             {/* ============================================================ */}
             {/* FORM BOOKING */}
@@ -280,6 +314,55 @@ export default function BookingSession() {
                 keyboardType="numeric"
               />
             </View>
+
+              <Text style={styles.sectionTitle}>Pilih Sesi</Text>
+              {sessions.map((s) => {
+                const isSelected = selectedSession?.id === s.id;
+                const isDisabled = s.seats_left <= 0;
+
+                return (
+                  <TouchableOpacity
+                    key={s.id}
+                    activeOpacity={0.8}
+                    disabled={isDisabled}
+                    onPress={() => setSelectedSession(s)}
+                    style={[
+                      styles.sessionCard,
+                      isSelected && styles.sessionCardSelected,
+                      isDisabled && styles.sessionCardDisabled,
+                    ]}
+                  >
+                    <View>
+                      <Text style={styles.sessionName}>{s.session_name}</Text>
+                      <Text style={styles.sessionTime}>
+                        {s.start_time} - {s.end_time}
+                      </Text>
+                      <Text style={styles.sessionPrice}>
+                        Rp {Number(s.price).toLocaleString("id-ID")}
+                      </Text>
+                      <Text style={styles.sessionSeat}>
+                        Sisa kursi: {s.seats_left}
+                      </Text>
+                    </View>
+
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color={COLORS.accent}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              <View style={styles.totalRow}>
+  <Text style={styles.totalLabel}>Total Harga</Text>
+  <Text style={styles.totalValue}>
+    Rp {totalPrice.toLocaleString("id-ID")}
+  </Text>
+</View>
+
 
             {/* ============================================================ */}
             {/* CTA */}
@@ -414,4 +497,62 @@ backButton: {
     fontWeight: "bold",
     fontSize: 16,
   },
+
+  sessionCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+
+  bookButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+  },
+
+  bookButtonDisabled: {
+    backgroundColor: "#ccc",
+  },
+
+  bookButtonText: {
+    color: COLORS.white,
+    fontWeight: "600",
+  },
+
+  sessionCardSelected: {
+  borderColor: COLORS.accent,
+  backgroundColor: "#fff7e6",
+},
+
+sessionCardDisabled: {
+  opacity: 0.5,
+},
+
+totalRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: 12,
+  paddingTop: 12,
+  borderTopWidth: 1,
+  borderTopColor: "#eee",
+},
+
+totalLabel: {
+  fontSize: 14,
+  color: COLORS.textMuted,
+},
+
+totalValue: {
+  fontSize: 16,
+  fontWeight: "bold",
+  color: COLORS.accent,
+},
+
 });

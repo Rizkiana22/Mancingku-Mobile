@@ -32,7 +32,7 @@ const COLORS = {
 const MENU_CATEGORIES = [
   {
     id: "1",
-    title: "Umpan Jitu",
+    title: "Umpan",
     subtitle: "Pelet, Cacing",
     icon: "nutrition" as const, // 'as const' agar TypeScript tahu ini nama icon valid
     route: "/equipment/umpan",

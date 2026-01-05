@@ -8,7 +8,6 @@ import {
   ListRenderItem,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,10 +16,8 @@ import { API_URL } from "@env";
 import { useAuth } from "@/context/AuthContext";
 
 // ============================================================================
-// 1. KONFIGURASI WARNA & KONSTANTA
+// WARNA
 // ============================================================================
-// Mengumpulkan semua warna di satu objek agar mudah dikelola (Clean Code).
-// Jika ingin ganti tema aplikasi, cukup ubah di sini.
 const COLORS = {
   primary: "#014b69",
   accent: "#da9723",
@@ -29,51 +26,72 @@ const COLORS = {
   textMain: "#333333",
   textMuted: "#666666",
   border: "#dddddd",
-  // Warna Status
+
   successBg: "#e6f4ea",
   successText: "#1e8e3e",
   pendingBg: "#fff3cd",
   pendingText: "#856404",
   cancelBg: "#f8d7da",
   cancelText: "#721c24",
-  defaultBg: "#f1f3f4",
-  defaultText: "#5f6368",
 };
 
-// Menggunakan object 'as const' untuk menghindari typo saat menulis string 'active' atau 'history'
+// ============================================================================
+// PARSER TANGGAL INDONESIA (WAJIB)
+// ============================================================================
+const parseIndoDate = (dateStr: string): Date | null => {
+  if (!dateStr) return null;
+
+  const months: Record<string, number> = {
+    Jan: 0,
+    Feb: 1,
+    Mar: 2,
+    Apr: 3,
+    Mei: 4,
+    Jun: 5,
+    Jul: 6,
+    Agu: 7,
+    Sep: 8,
+    Okt: 9,
+    Nov: 10,
+    Des: 11,
+  };
+
+  const parts = dateStr.split(" ");
+  if (parts.length !== 3) return null;
+
+  const day = Number(parts[0]);
+  const month = months[parts[1]];
+  const year = Number(parts[2]);
+
+  if (isNaN(day) || month === undefined || isNaN(year)) return null;
+
+  return new Date(year, month, day);
+};
+
+// ============================================================================
+// TAB
+// ============================================================================
 const TAB_OPTIONS = {
   ACTIVE: "active",
   HISTORY: "history",
 } as const;
 
-// ============================================================================
-// 2. DEFINISI TIPE DATA (INTERFACE)
-// ============================================================================
 type TabType = (typeof TAB_OPTIONS)[keyof typeof TAB_OPTIONS];
 
+// ============================================================================
+// TIPE DATA
+// ============================================================================
 interface Ticket {
   id: number;
   spot: string;
-  date: string;
-  price: string; // Backend mengirim harga dalam string (misal: "30000.00"), nanti kita convert.
-  
-  /**
-   * PENTING:
-   * 'status_tab' -> Menentukan tiket ini masuk ke Tab mana (Aktif / Riwayat).
-   * 'original_status' -> Menentukan warna badge (Paid/Pending/Cancelled).
-   */
-  status_tab: TabType; 
-  original_status: string;
+  date: string; // "19 Jan 2026"
+  price: string;
+  original_status: "paid" | "pending" | "cancelled";
 }
 
 // ============================================================================
-// 3. KOMPONEN KECIL (SUB-COMPONENTS)
-// Memecah UI menjadi komponen kecil agar kode utama tidak berantakan.
+// TAB SWITCH
 // ============================================================================
-
-/**
- * Komponen Tab Switcher (Tombol Aktif/Riwayat di atas)
- */
 const FilterTabs = ({
   currentTab,
   onTabChange,
@@ -82,7 +100,6 @@ const FilterTabs = ({
   onTabChange: (t: TabType) => void;
 }) => (
   <View style={styles.tabContainer}>
-    {/* Tombol Tab Aktif */}
     <TouchableOpacity
       style={[
         styles.tabButton,
@@ -100,7 +117,6 @@ const FilterTabs = ({
       </Text>
     </TouchableOpacity>
 
-    {/* Tombol Tab Riwayat */}
     <TouchableOpacity
       style={[
         styles.tabButton,
@@ -120,182 +136,147 @@ const FilterTabs = ({
   </View>
 );
 
-/**
- * Komponen Kartu Tiket
- * Menampilkan detail tiket dan statusnya.
- */
+// ============================================================================
+// CARD
+// ============================================================================
 const TicketCard = ({ item }: { item: Ticket }) => {
-  // Logic untuk menentukan warna badge berdasarkan status pembayaran
-  const getStatusBadge = () => {
-    const status = item.original_status || "paid"; // Fallback ke 'paid' jika kosong
-
-    switch (status) {
-      case "pending":
-        return { bg: COLORS.pendingBg, text: COLORS.pendingText, label: "Menunggu Bayar" };
-      case "cancelled":
-        return { bg: COLORS.cancelBg, text: COLORS.cancelText, label: "Dibatalkan" };
+  const getBadge = () => {
+    switch (item.original_status) {
       case "paid":
         return { bg: COLORS.successBg, text: COLORS.successText, label: "Lunas" };
-      default:
-        return { bg: COLORS.defaultBg, text: COLORS.defaultText, label: status };
+      case "pending":
+        return {
+          bg: COLORS.pendingBg,
+          text: COLORS.pendingText,
+          label: "Menunggu Bayar",
+        };
+      case "cancelled":
+        return {
+          bg: COLORS.cancelBg,
+          text: COLORS.cancelText,
+          label: "Dibatalkan",
+        };
     }
   };
 
-  const badgeStyle = getStatusBadge();
-  
-  // Konversi string harga ("30000.00") ke format Rupiah ("30.000")
-  const formattedPrice = Number(item.price).toLocaleString("id-ID");
+  const badge = getBadge();
+  const price = Number(item.price).toLocaleString("id-ID");
 
   return (
     <View style={styles.card}>
-      {/* Bagian Atas: Nama Spot & Status */}
       <View style={styles.cardHeader}>
-        <Text style={styles.spotName}>{item.spot}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: badgeStyle.bg }]}>
-          <Text style={[styles.statusText, { color: badgeStyle.text }]}>
-            {badgeStyle.label}
+        <Text style={styles.spotName} numberOfLines={1}>
+          {item.spot}
+        </Text>
+        <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+          <Text style={[styles.statusText, { color: badge.text }]}>
+            {badge.label}
           </Text>
         </View>
       </View>
 
-      {/* Bagian Bawah: Tanggal & Harga */}
       <View style={styles.cardBody}>
         <View style={styles.row}>
-          <Ionicons
-            name="calendar-outline"
-            size={16}
-            color={COLORS.textMuted}
-            style={{ marginRight: 5 }}
-          />
+          <Ionicons name="calendar-outline" size={16} color={COLORS.textMuted} />
           <Text style={styles.date}>{item.date}</Text>
         </View>
-        <Text style={styles.price}>Rp {formattedPrice}</Text>
+        <Text style={styles.price}>Rp {price}</Text>
       </View>
     </View>
   );
 };
 
 // ============================================================================
-// 4. MAIN COMPONENT (LAYAR UTAMA)
+// MAIN SCREEN
 // ============================================================================
 export default function ActivityScreen() {
-  // State Management
-  const [activeTab, setActiveTab] = useState<TabType>(TAB_OPTIONS.ACTIVE); // Tab yang sedang dipilih
-  const [tickets, setTickets] = useState<Ticket[]>([]); // Menyimpan semua data dari API
-  const [loading, setLoading] = useState(true); // Indikator loading awal
-  const [refreshing, setRefreshing] = useState(false); // Indikator tarik-turun (pull-to-refresh)
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabType>(TAB_OPTIONS.ACTIVE);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Konfigurasi API
-  const USER_ID = user?.id; // Hardcoded sementara
-  // Catatan: Ngrok URL berubah setiap restart. Pastikan selalu update.
-  const historyUrl = `${API_URL}/history/${USER_ID}`;
+  const url = `${API_URL}/history/${user?.id}`;
 
-  /**
-   * Fungsi Fetch Data
-   * Menggunakan 'useCallback' agar fungsi ini tidak dibuat ulang setiap render,
-   * menjaga performa 'useEffect' tetap stabil.
-   */
   const fetchHistory = useCallback(async () => {
     try {
-      const response = await axios.get(historyUrl);
-      
-      // Validasi response sukses
-      if (response.data.success) {
-        setTickets(response.data.data);
+      const res = await axios.get(url);
+      if (res.data?.success) {
+        setTickets(res.data.data);
       }
-    } catch (error) {
-      console.error("Gagal ambil history:", error);
-      // Opsional: Alert.alert("Error", "Gagal mengambil data");
+    } catch (e) {
+      console.log("FETCH ERROR", e);
     } finally {
-      // Matikan loading baik sukses maupun gagal
       setLoading(false);
       setRefreshing(false);
     }
-  }, [historyUrl]);
+  }, [url]);
 
-  /**
-   * Lifecycle: Component Did Mount
-   * Jalankan fetchHistory() saat pertama kali halaman dibuka.
-   */
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
 
-  /**
-   * Handler saat user menarik layar ke bawah (Refresh)
-   */
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchHistory();
-  };
-
-  /**
-   * Filtering Data (Optimasi Performa)
-   * Menggunakan 'useMemo' agar filter hanya dijalankan saat 
-   * 'tickets' berubah atau user ganti 'activeTab'.
-   * Ini mencegah filtering ulang yang tidak perlu saat render UI lain.
-   */
+  // ========================================================================
+  // FILTER UTAMA (TANPA UBAH BACKEND)
+  // ========================================================================
   const displayedData = useMemo(() => {
-    return tickets.filter((item) => item.status_tab === activeTab);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (activeTab === TAB_OPTIONS.ACTIVE) {
+      return tickets.filter((item) => {
+        if (item.original_status !== "paid") return false;
+
+        const ticketDate = parseIndoDate(item.date);
+        if (!ticketDate) return false;
+
+        ticketDate.setHours(0, 0, 0, 0);
+        return ticketDate >= today;
+      });
+    }
+
+    // RIWAYAT
+    return tickets.filter((item) => {
+      if (item.original_status === "pending") return false;
+
+      const ticketDate = parseIndoDate(item.date);
+      if (!ticketDate) return true;
+
+      ticketDate.setHours(0, 0, 0, 0);
+      return ticketDate < today;
+    });
   }, [activeTab, tickets]);
 
-  /**
-   * Render Item Helper
-   * Fungsi untuk merender setiap baris FlatList.
-   */
-  const renderItem: ListRenderItem<Ticket> = useCallback(
-    ({ item }) => <TicketCard item={item} />,
-    []
+  const renderItem: ListRenderItem<Ticket> = ({ item }) => (
+    <TicketCard item={item} />
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.headerTitle}>Aktivitas Saya</Text>
 
-      {/* Navigasi Tab */}
       <FilterTabs currentTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Logic Tampilan Loading vs Data */}
       {loading ? (
-        <View style={styles.centerContainer}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={{ marginTop: 10, color: COLORS.textMuted }}>
-            Sedang memuat...
-          </Text>
         </View>
       ) : (
         <FlatList
-          data={displayedData} // Data hasil filter
+          data={displayedData}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          
-          // Fitur Pull to Refresh
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[COLORS.primary]}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={fetchHistory} />
           }
-          
-          // Tampilan jika data kosong (Empty State)
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons
-                name="receipt-outline"
-                size={64}
-                color={COLORS.border}
-              />
+            <View style={styles.empty}>
+              <Ionicons name="receipt-outline" size={60} color={COLORS.border} />
               <Text style={styles.emptyText}>
                 {activeTab === TAB_OPTIONS.ACTIVE
-                  ? "Tidak ada tiket aktif saat ini."
-                  : "Belum ada riwayat pemesanan."}
-              </Text>
-              <Text style={{ fontSize: 12, color: "#999", marginTop: 5 }}>
-                (Coba cek tab sebelah, mungkin tiketnya ada disana)
+                  ? "Tidak ada tiket aktif"
+                  : "Belum ada riwayat"}
               </Text>
             </View>
           }
@@ -306,7 +287,7 @@ export default function ActivityScreen() {
 }
 
 // ============================================================================
-// 5. STYLES
+// STYLES
 // ============================================================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
@@ -314,16 +295,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: COLORS.primary,
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 15,
+    margin: 20,
   },
-  
-  tabContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
+  tabContainer: { flexDirection: "row", marginHorizontal: 20 },
   tabButton: {
     flex: 1,
     paddingVertical: 12,
@@ -332,25 +306,22 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   activeTab: { borderBottomColor: COLORS.accent },
-  tabText: { fontSize: 15, color: COLORS.textMuted, fontWeight: "600" },
+  tabText: { color: COLORS.textMuted, fontWeight: "600" },
   activeTabText: { color: COLORS.accent },
-  listContent: { padding: 20, paddingTop: 10, paddingBottom: 100 },
+
+  listContent: { padding: 20 },
   card: {
     backgroundColor: COLORS.white,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 10,
   },
   spotName: {
     fontSize: 16,
@@ -358,27 +329,23 @@ const styles = StyleSheet.create({
     color: COLORS.textMain,
     flex: 1,
   },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
   statusText: { fontSize: 12, fontWeight: "700" },
+
   cardBody: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  row: { flexDirection: "row", alignItems: "center" },
-  date: { color: COLORS.textMuted, fontSize: 14 },
-  price: { fontSize: 16, fontWeight: "bold", color: COLORS.accent },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 60,
-    paddingHorizontal: 40,
-  },
-  emptyText: {
-    color: COLORS.textMuted,
-    marginTop: 12,
-    textAlign: "center",
-    fontSize: 14,
-  },
-  centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  row: { flexDirection: "row", alignItems: "center", gap: 6 },
+  date: { color: COLORS.textMuted },
+  price: { fontWeight: "bold", color: COLORS.accent },
+
+  empty: { alignItems: "center", marginTop: 60 },
+  emptyText: { color: COLORS.textMuted, marginTop: 10 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

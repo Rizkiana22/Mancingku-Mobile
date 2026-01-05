@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   Dimensions,
   ImageBackground,
   ActivityIndicator,
-  Image, // Tambah Image component
+  Image,
+  RefreshControl, // 1. Import RefreshControl
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
@@ -18,7 +19,6 @@ import { useRouter } from "expo-router";
 import { API_URL } from "@env";
 
 // === IMPORT SERVICE ===
-// Tambahkan BlogService di sini
 import { SpotService, BlogService, BLOG_IMAGE_URL } from "@/service/api";
 
 // === IMPORT COMPONENTS ===
@@ -86,14 +86,10 @@ const getGreeting = (): Greeting => {
 
   return {
     title: "Selamat Malam",
-    desc: "Saatnya istirahat dan rencanakan mancing besok.",
+    desc: "Saatnya istirahat dan rencanakan mancing untuk besok.",
     icon: "moon",
   };
-
-
-
 };
-
 
 const PromoBanner = ({ onPress }: { onPress: () => void }) => {
   const greeting = getGreeting();
@@ -119,7 +115,6 @@ const PromoBanner = ({ onPress }: { onPress: () => void }) => {
   );
 };
 
-
 const QuickMenuItem = ({
   label,
   icon,
@@ -140,8 +135,7 @@ const QuickMenuItem = ({
     <Text style={styles.menuText}>{label}</Text>
   </TouchableOpacity>
 );
-// === NEW COMPONENT: BLOG CARD ===
-// Komponen kecil khusus untuk kartu blog
+
 const BlogCard = ({ title, date, image, onPress }: any) => (
   <TouchableOpacity
     style={styles.blogCard}
@@ -166,55 +160,65 @@ export default function HomeScreen() {
 
   // STATE MANAGEMENT
   const [popularSpots, setPopularSpots] = useState<any[]>([]);
-  const [blogs, setBlogs] = useState<any[]>([]); // State untuk Blog
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // 2. State untuk refresh
 
+  // 3. Logic Fetch Data dipisah agar bisa dipanggil ulang
+  const fetchData = async () => {
+    try {
+      // Panggil API Spot dan Blog secara bersamaan (Parallel)
+      const [spotsRes, blogsRes] = await Promise.all([
+        SpotService.getPopular(),
+        BlogService.getAll(),
+      ]);
+
+      // 1. MAPPING DATA SPOTS
+      const mappedSpots = spotsRes.data.map((item: any) => ({
+        id: item.id,
+        slug: item.slug,
+        title: item.name,
+        location: item.address,
+        rating: Number(item.rating) || 0,
+        imageSource: {
+          uri: `${API_URL}/assets/spots/${item.image}`,
+        },
+      }));
+
+      // 2. MAPPING DATA BLOGS
+      const blogList = blogsRes.data?.data ?? blogsRes.data ?? [];
+      const mappedBlogs = blogList.slice(0, 5).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        date: new Date(item.created_at).toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+        imageSource: {
+          uri: BLOG_IMAGE_URL(item.image),
+        },
+      }));
+
+      setPopularSpots(mappedSpots);
+      setBlogs(mappedBlogs);
+    } catch (error) {
+      console.error("Error Fetching Data:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false); // Matikan loading refresh
+    }
+  };
+
+  // Lifecycle awal
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Panggil API Spot dan Blog secara bersamaan (Parallel)
-        const [spotsRes, blogsRes] = await Promise.all([
-          SpotService.getPopular(),
-          BlogService.getAll(),
-        ]);
+    fetchData();
+  }, []);
 
-        // 1. MAPPING DATA SPOTS
-        const mappedSpots = spotsRes.data.map((item: any) => ({
-          id: item.id,
-          slug: item.slug,
-          title: item.name,
-          location: item.address,
-          rating: Number(item.rating) || 0,
-          imageSource: {
-            uri: `${API_URL}/assets/spots/${item.image}`,
-          },
-        }));
-
-        // 2. MAPPING DATA BLOGS
-        const blogList = blogsRes.data?.data ?? blogsRes.data ?? [];
-        const mappedBlogs = blogList.slice(0, 5).map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          slug: item.slug,
-          date: new Date(item.created_at).toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
-          imageSource: {
-            uri: BLOG_IMAGE_URL(item.image), // PAKAI INI
-          },
-        }));
-
-        setPopularSpots(mappedSpots);
-        setBlogs(mappedBlogs);
-      } catch (error) {
-        console.error("Error Fetching Data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  // 4. Fungsi handle refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
     fetchData();
   }, []);
 
@@ -230,6 +234,15 @@ export default function HomeScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
+          // 5. Tambahkan props RefreshControl di sini
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={COLORS.white} // Warna spinner di iOS
+              colors={[COLORS.primary]} // Warna spinner di Android
+            />
+          }
         >
           {/* === HEADER SECTION === */}
           <HeaderSection
@@ -260,7 +273,6 @@ export default function HomeScreen() {
                 color="#E91E63"
                 onPress={() => router.push("/(tabs)/aktivitas")}
               />
-
               <QuickMenuItem
                 label="Artikel"
                 icon="newspaper"
@@ -274,7 +286,6 @@ export default function HomeScreen() {
           {/* === SECTION: SPOT POPULER === */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Spot Paling Populer</Text>
-            {/* Opsi: Tambah tombol 'Lihat Semua' jika perlu */}
           </View>
 
           <ScrollView
@@ -296,11 +307,7 @@ export default function HomeScreen() {
                   location={spot.location}
                   rating={spot.rating}
                   imageSource={spot.imageSource}
-
                   onPress={() => {
-                    console.log('Spot pressed:', spot);
-                    console.log('Slug:', spot.slug);
-
                     router.push(`/spot/${spot.slug}` as any);
                   }}
                 />
@@ -311,10 +318,6 @@ export default function HomeScreen() {
           {/* === SECTION: BLOG / TIPS MANCING (BARU) === */}
           <View style={[styles.sectionHeader, { marginTop: 10 }]}>
             <Text style={styles.sectionTitle}>Blog & Artikel Mancing</Text>
-            {/* Tombol kecil jika user ingin lihat semua blog */}
-            {/* <TouchableOpacity onPress={() => router.push('/blog')}>
-                <Text style={styles.seeAllText}>Lihat Semua</Text>
-             </TouchableOpacity> */}
           </View>
 
           <ScrollView
@@ -335,7 +338,6 @@ export default function HomeScreen() {
                   title={blog.title}
                   date={blog.date}
                   image={blog.imageSource}
-                  // Navigasi ke detail blog (pastikan buat file [slug].tsx nanti)
                   onPress={() => router.push(`/blog/${blog.slug}` as any)}
                 />
               ))
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 10,
-    marginBottom: 30, // Dikurangi dikit biar muat banyak
+    marginBottom: 30,
     elevation: 3,
   },
   menuRow: {
@@ -443,17 +445,17 @@ const styles = StyleSheet.create({
 
   // === STYLES BLOG CARD ===
   blogCard: {
-    width: 220, // Lebar fixed biar bisa di-scroll horizontal
+    width: 220,
     height: 180,
     backgroundColor: COLORS.cardBg,
     borderRadius: 12,
-    marginRight: 15, // Jarak antar kartu
+    marginRight: 15,
     overflow: "hidden",
     elevation: 2,
   },
   blogImage: {
     width: "100%",
-    height: 100, // Gambar ambil separuh kartu
+    height: 100,
     backgroundColor: "#ddd",
   },
   blogContent: {

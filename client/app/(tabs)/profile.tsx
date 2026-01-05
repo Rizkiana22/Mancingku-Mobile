@@ -1,25 +1,27 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { UserService } from "@/service/api"; // Import Service API
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 const COLORS = {
   primary: "#014b69",
-  background: "#f8f9fa",
+  background: "#ffffffff",
   white: "#ffffff",
   textMain: "#333333",
   textMuted: "#666666",
@@ -51,6 +53,14 @@ const ProfileMenuItem = ({
   </TouchableOpacity>
 );
 
+// Footer
+const AppFooter = () => (
+  <View style={styles.footerContainer}>
+    <Text style={styles.footerText}>Mancingku App v1.0.0</Text>
+    <Text style={styles.footerText}>© 2025 Mancingku.</Text>
+  </View>
+);
+
 // ============================================================================
 // MAIN SCREEN
 // ============================================================================
@@ -59,7 +69,45 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { isLoggedIn, user, signOut } = useAuth();
 
-  const username = user?.email?.split("@")[0] ?? "User";
+  // State lokal untuk menampung data user terbaru dari database
+  const [profileData, setProfileData] = useState<any>(user);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // ============================================================================
+  // LOAD DATA TERBARU SAAT HALAMAN DIBUKA (FOCUS)
+  // ============================================================================
+  useFocusEffect(
+    useCallback(() => {
+      // Jika user belum login, tidak perlu fetch
+      if (!isLoggedIn || !user?.id) return;
+
+      const fetchData = async () => {
+        // setLoadingData(true); // Optional: Jika ingin loading indicator setiap balik
+        try {
+          const response = await UserService.getById(user.id);
+          if (response.data) {
+            // Update state lokal dengan data terbaru dari database
+            // Sesuaikan response.data.data atau response.data tergantung backend kamu
+            const newData = response.data.data || response.data;
+            setProfileData(newData);
+          }
+        } catch (error) {
+          console.error("Gagal refresh profil:", error);
+        } finally {
+          setLoadingData(false);
+        }
+      };
+
+      fetchData();
+    }, [isLoggedIn, user?.id])
+  );
+
+  // Logic Tampilan Nama
+  // 1. Coba ambil dari profileData.name (Database)
+  // 2. Jika kosong, ambil dari user.email (Context)
+  // 3. Fallback "Pengguna"
+  const displayName = profileData?.name || user?.email?.split("@")[0] || "Pengguna";
+  const displayPhone = profileData?.phone || "-";
 
   // ============================================================================
   // GUEST (BELUM LOGIN)
@@ -71,10 +119,7 @@ export default function ProfileScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={30} color={COLORS.white} />
           </TouchableOpacity>
-
           <Text style={styles.topTitle}>Profile</Text>
-
-          {/* spacer supaya title tetap center */}
           <View style={{ width: 24 }} />
         </View>
 
@@ -84,7 +129,6 @@ export default function ProfileScreen() {
             size={120}
             color={COLORS.textMuted}
           />
-
           <Text style={styles.guestTitle}>Kamu belum login</Text>
           <Text style={styles.guestSubtitle}>
             Login atau daftar untuk melanjutkan
@@ -124,15 +168,12 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={30} color={COLORS.white} />
-          </TouchableOpacity>
-
-          <Text style={styles.topTitle}>Profile</Text>
-
-          {/* spacer supaya title tetap center */}
-          <View style={{ width: 24 }} />
-        </View>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={30} color={COLORS.white} />
+        </TouchableOpacity>
+        <Text style={styles.topTitle}>Profile</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* PROFILE HEADER */}
@@ -141,8 +182,20 @@ export default function ProfileScreen() {
             <Ionicons name="person" size={48} color={COLORS.white} />
           </View>
 
-          <Text style={styles.userName}>{username}</Text>
+          {/* Menampilkan Nama dari Database */}
+          <Text style={styles.userName}>{displayName}</Text>
+          
+          {/* Menampilkan Email */}
           <Text style={styles.userEmail}>{user?.email}</Text>
+
+           {/* Menampilkan No HP (Optional) */}
+           {profileData?.phone ? (
+            <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 5}}>
+               <Ionicons name="call" size={12} color={COLORS.textMuted} style={{marginRight: 4}}/>
+               <Text style={styles.userPhone}>{profileData.phone}</Text>
+            </View>
+          ) : null}
+          
         </View>
 
         {/* AKUN */}
@@ -151,7 +204,7 @@ export default function ProfileScreen() {
           <ProfileMenuItem
             icon="person"
             label="Edit Profil"
-            onPress={() => alert("Edit Profil")}
+            onPress={() => router.push("/profil/edit-profile")}
           />
         </View>
 
@@ -165,11 +218,21 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {/* CS */}
+        <View style={styles.card}>
+          <ProfileMenuItem
+            icon="chatbubble-ellipses-outline"
+            label="Pusat Bantuan"
+            onPress={() => router.push("/profil/cs")}
+          />
+        </View>
+
         {/* LOGOUT */}
         <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
           <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
           <Text style={styles.logoutText}>Keluar</Text>
         </TouchableOpacity>
+        <AppFooter />
       </ScrollView>
     </SafeAreaView>
   );
@@ -181,7 +244,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.white,
   },
   topBar: {
     flexDirection: "row",
@@ -193,13 +256,11 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
     backgroundColor: "#014b69",
   },
-
   topTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#fff",
   },
-
   profileHeader: {
     alignItems: "center",
     paddingVertical: 30,
@@ -219,12 +280,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: COLORS.textMain,
+    textAlign: "center",
   },
   userEmail: {
     fontSize: 14,
     color: COLORS.textMuted,
+    marginTop: 2,
   },
-
+  userPhone: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "bold",
@@ -232,7 +298,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 10,
   },
-
   card: {
     backgroundColor: COLORS.white,
     marginHorizontal: 20,
@@ -241,7 +306,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     elevation: 2,
   },
-
   menuItem: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -267,7 +331,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.textMain,
   },
-
   logoutButton: {
     marginHorizontal: 20,
     backgroundColor: COLORS.danger,
@@ -283,7 +346,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 8,
   },
-
   guestContainer: {
     alignItems: "center",
     marginTop: 100,
@@ -310,5 +372,18 @@ const styles = StyleSheet.create({
   actionText: {
     fontWeight: "bold",
     color: COLORS.white,
+  },
+
+  // === STYLE FOOTER ===
+  footerContainer: {
+    paddingVertical: 30, // Jarak atas bawah biar ga mepet
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  footerText: {
+    fontSize: 12,
+    color: "#999", // Warna abu-abu pudar biar ga nyolok
+    textAlign: "center",
   },
 });

@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/booking', verifyToken, createBooking);
 router.get('/booking/:id', verifyToken, getBookingById);
-router.patch('/booking/:id/pay', updateStatus);
+router.patch('/booking/:id/pay', verifyToken, updateStatus);
 router.get('/booking/user/:id', verifyToken, getByUserIdPaid);
 
 export default router;

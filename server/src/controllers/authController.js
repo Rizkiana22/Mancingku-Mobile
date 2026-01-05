@@ -15,7 +15,7 @@ export const register = async (req, res) => {
         const { email, password } = req.body;
 
         // Validasi input dasar
-        if (!email || !password) { 
+        if (!email || !password) {
             return res.status(400).json({ message: "Email dan password wajib diisi" });
         }
 
@@ -50,10 +50,10 @@ export const login = async (req, res) => {
         const { email, password } = req.body;
 
         // Validasi input
-        if (!email || !password) { 
+        if (!email || !password) {
             return res.status(400).json({ message: "Email dan password wajib diisi" });
         }
-        
+
         // Ambil user berdasarkan email
         const user = await AuthModel.findByEmail(email);
         if (!user) {
@@ -77,10 +77,13 @@ export const login = async (req, res) => {
             role: user.role
         };
 
-        const secretKey = process.env.JWT_SECRET || "RAHASIA_NEGARA";
+        const secretKey = process.env.JWT_SECRET;
+        if (!secretKey) {
+            throw new Error("JWT_SECRET belum diset");
+        }
 
-        // Token berlaku selama 1 hari
         const token = jwt.sign(payload, secretKey, { expiresIn: "1d" });
+
 
         res.json({
             message: "Login berhasil",
