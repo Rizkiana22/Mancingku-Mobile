@@ -9,7 +9,7 @@ import {
   ImageBackground,
   ActivityIndicator,
   Image,
-  RefreshControl, // 1. Import RefreshControl
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
@@ -18,17 +18,15 @@ import { useRouter } from "expo-router";
 // Mengambil variabel environment
 import { API_URL } from "@env";
 
-// === IMPORT SERVICE ===
+// = import service =
 import { SpotService, BlogService, BLOG_IMAGE_URL } from "@/service/api";
 
-// === IMPORT COMPONENTS ===
+// = IMPORT COMPONENT = 
 import SpotHighlightCard from "@/components/SpotHighlightCard";
 
 const { width } = Dimensions.get("window");
 
-// ============================================================================
-// CONFIGURATION & CONSTANTS
-// ============================================================================
+//Configuration Constant
 const COLORS = {
   primary: "#014b69",
   accent: "#da9723",
@@ -37,10 +35,6 @@ const COLORS = {
   textMuted: "#666666",
   cardBg: "rgba(255,255,255,0.95)",
 };
-
-// ============================================================================
-// SUB-COMPONENTS (Local)
-// ============================================================================
 
 const HeaderSection = ({ onProfilePress }: { onProfilePress: () => void }) => (
   <View style={styles.headerContainer}>
@@ -57,6 +51,7 @@ type Greeting = {
   icon: keyof typeof Ionicons.glyphMap;
 };
 
+//sapaan sesuai jam
 const getGreeting = (): Greeting => {
   const hour = new Date().getHours();
 
@@ -91,6 +86,7 @@ const getGreeting = (): Greeting => {
   };
 };
 
+//promo benner
 const PromoBanner = ({ onPress }: { onPress: () => void }) => {
   const greeting = getGreeting();
 
@@ -115,6 +111,7 @@ const PromoBanner = ({ onPress }: { onPress: () => void }) => {
   );
 };
 
+//menu cepat
 const QuickMenuItem = ({
   label,
   icon,
@@ -136,6 +133,7 @@ const QuickMenuItem = ({
   </TouchableOpacity>
 );
 
+//blog & artikel
 const BlogCard = ({ title, date, image, onPress }: any) => (
   <TouchableOpacity
     style={styles.blogCard}
@@ -152,9 +150,8 @@ const BlogCard = ({ title, date, image, onPress }: any) => (
   </TouchableOpacity>
 );
 
-// ============================================================================
-// MAIN SCREEN COMPONENT
-// ============================================================================
+
+//tampilan utama
 export default function HomeScreen() {
   const router = useRouter();
 
@@ -162,9 +159,8 @@ export default function HomeScreen() {
   const [popularSpots, setPopularSpots] = useState<any[]>([]);
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // 2. State untuk refresh
+  const [refreshing, setRefreshing] = useState(false);
 
-  // 3. Logic Fetch Data dipisah agar bisa dipanggil ulang
   const fetchData = async () => {
     try {
       // Panggil API Spot dan Blog secara bersamaan (Parallel)
@@ -185,7 +181,7 @@ export default function HomeScreen() {
         },
       }));
 
-      // 2. MAPPING DATA BLOGS
+      //data blog
       const blogList = blogsRes.data?.data ?? blogsRes.data ?? [];
       const mappedBlogs = blogList.slice(0, 5).map((item: any) => ({
         id: item.id,
@@ -207,7 +203,7 @@ export default function HomeScreen() {
       console.error("Error Fetching Data:", error);
     } finally {
       setLoading(false);
-      setRefreshing(false); // Matikan loading refresh
+      setRefreshing(false); 
     }
   };
 
@@ -216,7 +212,7 @@ export default function HomeScreen() {
     fetchData();
   }, []);
 
-  // 4. Fungsi handle refresh
+  // Fungsi handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchData();
@@ -234,25 +230,24 @@ export default function HomeScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
-          // 5. Tambahkan props RefreshControl di sini
           refreshControl={
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh}
-              tintColor={COLORS.white} // Warna spinner di iOS
-              colors={[COLORS.primary]} // Warna spinner di Android
+              tintColor={COLORS.white} 
+              colors={[COLORS.primary]}
             />
           }
         >
-          {/* === HEADER SECTION === */}
+          {/* header */}
           <HeaderSection
             onProfilePress={() => router.push("/(tabs)/profile")}
           />
 
-          {/* === BANNER PROMO === */}
+          {/*banner*/}
           <PromoBanner onPress={() => router.push("/(tabs)/spot")} />
 
-          {/* === MENU NAVIGASI CEPAT === */}
+          {/* menu cepat */}
           <View style={styles.menuCard}>
             <View style={styles.menuRow}>
               <QuickMenuItem
@@ -283,7 +278,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* === SECTION: SPOT POPULER === */}
+          {/* spot populer  */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Spot Paling Populer</Text>
           </View>
@@ -315,7 +310,7 @@ export default function HomeScreen() {
             )}
           </ScrollView>
 
-          {/* === SECTION: BLOG / TIPS MANCING (BARU) === */}
+          {/* blog & artikel*/}
           <View style={[styles.sectionHeader, { marginTop: 10 }]}>
             <Text style={styles.sectionTitle}>Blog & Artikel Mancing</Text>
           </View>
@@ -353,9 +348,7 @@ export default function HomeScreen() {
   );
 }
 
-// ============================================================================
 // STYLES
-// ============================================================================
 const styles = StyleSheet.create({
   container: { flex: 1 },
   overlay: {
@@ -374,7 +367,7 @@ const styles = StyleSheet.create({
   },
   greetingText: { fontSize: 22, fontWeight: "bold", color: COLORS.white },
 
-  // Banner
+ //BANNER
   bannerContainer: {
     marginHorizontal: 20,
     backgroundColor: COLORS.primary,
@@ -398,7 +391,7 @@ const styles = StyleSheet.create({
   bannerButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 12 },
   bannerIcon: { position: "absolute", right: 5, bottom: -5 },
 
-  // Menu
+  //MENU
   menuCard: {
     marginHorizontal: 20,
     backgroundColor: COLORS.cardBg,
@@ -424,7 +417,7 @@ const styles = StyleSheet.create({
   },
   menuText: { fontSize: 12, fontWeight: "600", color: COLORS.primary },
 
-  // Section Headers
+  // HEADER
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -443,7 +436,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // === STYLES BLOG CARD ===
+  // BLOG 
   blogCard: {
     width: 220,
     height: 180,

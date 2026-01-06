@@ -34,7 +34,7 @@ const MENU_CATEGORIES = [
     id: "1",
     title: "Umpan",
     subtitle: "Pelet, Cacing",
-    icon: "nutrition" as const, // 'as const' agar TypeScript tahu ini nama icon valid
+    icon: "nutrition" as const, //  agar TypeScript tahu ini nama icon valid
     route: "/equipment/umpan",
     isActive: true,
   },
@@ -48,13 +48,8 @@ const MENU_CATEGORIES = [
   },
 ];
 
-// ============================================================================
-// 2. COMPONENTS (Reusable UI)
-// ============================================================================
 
-/**
- * Komponen Kartu Kategori (Kotak-kotak Grid)
- */
+//COMPONENTS (Reusable UI)
 const CategoryCard = ({ item }: { item: (typeof MENU_CATEGORIES)[0] }) => {
   const router = useRouter();
 
@@ -76,7 +71,7 @@ const CategoryCard = ({ item }: { item: (typeof MENU_CATEGORIES)[0] }) => {
       onPress={handlePress}
       activeOpacity={0.8}
     >
-      {/* Icon Circle: Warna background menyesuaikan status aktif */}
+      {/*Warna background menyesuaikan status aktif */}
       <View
         style={[
           styles.iconCircle,
@@ -109,9 +104,8 @@ const CategoryCard = ({ item }: { item: (typeof MENU_CATEGORIES)[0] }) => {
   );
 };
 
-// ============================================================================
-// 3. MAIN SCREEN
-// ============================================================================
+
+// MAIN SCREEN
 export default function MenuScreen() {
   return (
     <View style={styles.container}>
@@ -127,7 +121,7 @@ export default function MenuScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <CategoryCard item={item} />}
         
-        // --- KONFIGURASI GRID 2 KOLOM ---
+        // grid 2 kolom
         numColumns={2} 
         
         // columnWrapperStyle: Memberi jarak horizontal (kiri-kanan) antar kolom

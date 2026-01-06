@@ -44,11 +44,19 @@ export const BaitService = {
 };
 
 // === FISHING GEAR (CamelCase, Tunggal: /fishingGear) ===
-export const GearService = {
+export const fishingGearService = {
   getAll: () => api.get("/fishingGear"),
   create: (data: any) => api.post("/fishingGear", data),
   update: (id: number, data: any) => api.put(`/fishingGear/${id}`, data),
   delete: (id: number) => api.delete(`/fishingGear/${id}`),
+};
+
+export const GearService = {
+  getBySpot: (spotId: string) => api.get(`/spots/${spotId}/gears`),
+  getAll: () => api.get("/gears"),
+  create: (data: any) => api.post("/gears", data),
+  update: (id: number, data: any) => api.put(`/gears/${id}`, data),
+  delete: (id: number) => api.delete(`/gears/${id}`),
 };
 
 // === BLOG (Tunggal: /blog) ===
@@ -92,4 +100,31 @@ export const AuthService = {
 export const UserService = {
   getById: (id: number) => api.get(`/users/${id}`),
   update: (id: number, data: any) => api.patch(`/users/${id}`, data),
+};
+
+// === BOOKING GEARS (Relasi Booking ↔ Gear) ===
+export const BookingGearService = {
+  /**
+   * Ambil daftar gear yang disewa dalam satu booking
+   */
+  getByBookingId: (bookingId: number, token: string) =>
+    api.get(`/booking-gears/${bookingId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  /**
+   * Tambah gear ke booking (opsional, admin / extend booking)
+   */
+  addToBooking: (data: any, token: string) =>
+    api.post("/booking-gears", data, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  /**
+   * Hapus semua gear dari booking (cancel / rollback)
+   */
+  deleteByBookingId: (bookingId: number, token: string) =>
+    api.delete(`/booking-gears/${bookingId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
 };

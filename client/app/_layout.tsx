@@ -33,6 +33,7 @@ export default function RootLayout() {
           <Stack.Screen name="profil" options={{ headerShown: false }} />
           <Stack.Screen name="review" options={{ headerShown: false }} />
           <Stack.Screen name="payment" options={{ headerShown: false }} />
+          <Stack.Screen name="tiket" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

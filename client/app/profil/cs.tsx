@@ -45,7 +45,7 @@ const FAQ_DATA = [
   {
     id: 2,
     question: "Metode pembayaran apa saja yang tersedia?",
-    answer: "Saat ini kami mendukung transfer bank (BCA, Mandiri, BRI) dan E-Wallet (GoPay, OVO, Dana).",
+    answer: "Saat ini kami mendukung transfer bank (BCA dan Mandiri) serta E-Wallet (QRIS dan Dana).",
   },
   {
     id: 3,

@@ -16,9 +16,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { UserService } from "@/service/api"; // Import Service API
 
-// ============================================================================
 // CONSTANTS
-// ============================================================================
 const COLORS = {
   primary: "#014b69",
   background: "#ffffffff",
@@ -28,9 +26,7 @@ const COLORS = {
   danger: "#E53935",
 };
 
-// ============================================================================
 // REUSABLE MENU ITEM
-// ============================================================================
 const ProfileMenuItem = ({
   icon,
   label,
@@ -61,9 +57,8 @@ const AppFooter = () => (
   </View>
 );
 
-// ============================================================================
 // MAIN SCREEN
-// ============================================================================
+
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -73,9 +68,8 @@ export default function ProfileScreen() {
   const [profileData, setProfileData] = useState<any>(user);
   const [loadingData, setLoadingData] = useState(false);
 
-  // ============================================================================
-  // LOAD DATA TERBARU SAAT HALAMAN DIBUKA (FOCUS)
-  // ============================================================================
+
+  // LOAD DATA TERBARU SAAT HALAMAN DIBUKA 
   useFocusEffect(
     useCallback(() => {
       // Jika user belum login, tidak perlu fetch

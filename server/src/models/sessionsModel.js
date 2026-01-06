@@ -5,7 +5,7 @@ import db from "../config/db.js";
  * Mengelola data sesi pemancingan untuk setiap spot.
  * Termasuk perhitungan kursi tersisa, sesi berikutnya, dan jam operasional.
  */
-const SessionModel = {
+export const SessionModel = {
 
   /**
    * Mengambil semua sesi untuk satu spot berdasarkan tanggal tertentu.
@@ -65,6 +65,22 @@ const SessionModel = {
     const [rows] = await db.execute(sql, [spotId]);
     return rows[0];
   },
+
+  /**
+   * Ambil session sederhana untuk proses booking
+   * (transaction-safe)
+   */
+  getById: async (id, conn = db) => {
+    const sql = `
+      SELECT id, spot_id, price
+      FROM sessions
+      WHERE id = ?
+      LIMIT 1
+    `;
+    const [rows] = await conn.execute(sql, [id]);
+    return rows[0];
+  },
+
 
   getDetailById: async (sessionId, date = null) => {
     const targetDate = date || new Date().toISOString().split("T")[0];

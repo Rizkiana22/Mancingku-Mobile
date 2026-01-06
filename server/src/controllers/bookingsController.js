@@ -1,39 +1,111 @@
+import db from "../config/db.js";
 import BookingModel from "../models/bookingsModel.js";
+import BookingGearsModel from "../models/bookingGearsModel.js";
+import GearsModel from "../models/gearsModel.js";
+import SessionModel from "../models/sessionsModel.js";
+import SpotGearModel from "../models/spotGearsModel.js";
 
-/*
-    Controller: Membuat booking baru.
-    - Data langsung diambil dari body request.
-    - Model akan menangani validasi lanjutan (misal: sesi tidak ditemukan).
-    - Jika sukses, kembalikan insertId untuk keperluan tracking di client.
-*/
 export const createBooking = async (req, res) => {
+  const conn = await db.getConnection();
+
   try {
-    const userId = req.user.id; // dari verifyToken
-    const { session_id, booking_date, total_people } = req.body;
+    const userId = req.user.id;
+    const { session_id, booking_date, total_people, gears = [] } = req.body;
 
-    const data = {
-      user_id: userId,
-      session_id,
-      booking_date,
-      total_people,
-    };
+    if (!session_id || !booking_date || total_people <= 0) {
+      return res.status(400).json({ message: "Data booking tidak valid" });
+    }
 
-    const result = await BookingModel.create(data);
+    await conn.beginTransaction();
 
-    res.json({
-      message: "Booking created successfully",
-      bookingId: result.insertId
+    // 1. Ambil session (WAJIB)
+    const session = await SessionModel.getById(session_id, conn);
+    if (!session) {
+      throw new Error("Session tidak ditemukan");
+    }
+
+    // 2. Buat booking
+    const bookingResult = await BookingModel.create(
+      {
+        user_id: userId,
+        session_id,
+        booking_date,
+        total_people,
+      },
+      conn
+    );
+
+    const bookingId = bookingResult.insertId;
+
+    let totalGears = 0;
+    let totalGearPrice = 0;
+
+    // 3. Proses gear
+    for (const g of gears) {
+      if (!g.gear_id || g.quantity <= 0) continue;
+
+      const gear = await GearsModel.getById(g.gear_id, conn);
+      if (!gear) {
+        throw new Error("Gear tidak ditemukan");
+      }
+
+      // Validasi gear milik spot
+      const exists = await SpotGearModel.exists(
+        session.spot_id,
+        gear.id,
+        conn
+      );
+
+      if (!exists) {
+        throw new Error("Gear tidak tersedia untuk spot ini");
+      }
+
+      // Kurangi stok
+      await GearsModel.reduceStock(gear.id, g.quantity, conn);
+
+      // Simpan snapshot booking gear
+      await BookingGearsModel.create(
+        {
+          booking_id: bookingId,
+          gear_id: gear.id,
+          quantity: g.quantity,
+          price: gear.price,
+        },
+        conn
+      );
+
+      totalGears += g.quantity;
+      totalGearPrice += gear.price * g.quantity;
+    }
+
+    // 4. Update total booking
+    const totalAmount =
+      session.price * total_people + totalGearPrice;
+
+    await BookingModel.updateTotals(
+      bookingId,
+      {
+        total_amount: totalAmount,
+        total_gears: totalGears,
+      },
+      conn
+    );
+
+    await conn.commit();
+
+    res.status(201).json({
+      message: "Booking berhasil dibuat",
+      bookingId,
     });
 
   } catch (error) {
-    console.error("CREATE BOOKING ERROR:", error); // PENTING
-
-    res.status(500).json({
-      message: error.message || "Server Error saat membuat booking"
-    });
+    await conn.rollback();
+    console.error("CREATE BOOKING ERROR:", error);
+    res.status(500).json({ message: error.message });
+  } finally {
+    conn.release();
   }
 };
-
 
 /*
     Controller: Mendapatkan booking berdasarkan ID.

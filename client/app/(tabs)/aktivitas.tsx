@@ -14,10 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { API_URL } from "@env";
 import { useAuth } from "@/context/AuthContext";
-
-// ============================================================================
+import { useRouter } from "expo-router";
 // WARNA
-// ============================================================================
 const COLORS = {
   primary: "#014b69",
   accent: "#da9723",
@@ -27,6 +25,8 @@ const COLORS = {
   textMuted: "#666666",
   border: "#dddddd",
 
+  selesaiBg: "#e0e0e0",
+  selesaiText: "#666666",
   successBg: "#e6f4ea",
   successText: "#1e8e3e",
   pendingBg: "#fff3cd",
@@ -35,9 +35,8 @@ const COLORS = {
   cancelText: "#721c24",
 };
 
-// ============================================================================
-// PARSER TANGGAL INDONESIA (WAJIB)
-// ============================================================================
+
+// PARSER TANGGAL INDONESIA
 const parseIndoDate = (dateStr: string): Date | null => {
   if (!dateStr) return null;
 
@@ -68,9 +67,8 @@ const parseIndoDate = (dateStr: string): Date | null => {
   return new Date(year, month, day);
 };
 
-// ============================================================================
-// TAB
-// ============================================================================
+
+// TAB (Aktif & History)
 const TAB_OPTIONS = {
   ACTIVE: "active",
   HISTORY: "history",
@@ -78,20 +76,17 @@ const TAB_OPTIONS = {
 
 type TabType = (typeof TAB_OPTIONS)[keyof typeof TAB_OPTIONS];
 
-// ============================================================================
 // TIPE DATA
-// ============================================================================
 interface Ticket {
   id: number;
   spot: string;
-  date: string; // "19 Jan 2026"
+  date: string;
   price: string;
   original_status: "paid" | "pending" | "cancelled";
 }
 
-// ============================================================================
+
 // TAB SWITCH
-// ============================================================================
 const FilterTabs = ({
   currentTab,
   onTabChange,
@@ -136,59 +131,85 @@ const FilterTabs = ({
   </View>
 );
 
-// ============================================================================
 // CARD
-// ============================================================================
-const TicketCard = ({ item }: { item: Ticket }) => {
+const TicketCard = ({
+  item,
+  onPress,
+  isHistory,
+}: {
+  item: Ticket;
+  onPress?: () => void;
+  isHistory: Boolean;
+}) => {
   const getBadge = () => {
-    switch (item.original_status) {
-      case "paid":
-        return { bg: COLORS.successBg, text: COLORS.successText, label: "Lunas" };
-      case "pending":
-        return {
-          bg: COLORS.pendingBg,
-          text: COLORS.pendingText,
-          label: "Menunggu Bayar",
-        };
-      case "cancelled":
-        return {
-          bg: COLORS.cancelBg,
-          text: COLORS.cancelText,
-          label: "Dibatalkan",
-        };
+  // RIWAYAT
+  if (isHistory) {
+    if (item.original_status === "paid") {
+      return {
+        bg: COLORS.selesaiBg,
+        text: COLORS.selesaiText,
+        label: "Selesai",
+      };
     }
-  };
+
+    return null;
+  }
+
+  // TIKET AKTIF
+  if (item.original_status === "paid") {
+    return {
+      bg: COLORS.successBg,
+      text: COLORS.successText,
+      label: "Aktif",
+    };
+  }
+  return null;
+};
 
   const badge = getBadge();
   const price = Number(item.price).toLocaleString("id-ID");
 
   return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.spotName} numberOfLines={1}>
-          {item.spot}
-        </Text>
-        <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
-          <Text style={[styles.statusText, { color: badge.text }]}>
-            {badge.label}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.spotName} numberOfLines={1}>
+            {item.spot}
           </Text>
-        </View>
-      </View>
 
-      <View style={styles.cardBody}>
-        <View style={styles.row}>
-          <Ionicons name="calendar-outline" size={16} color={COLORS.textMuted} />
-          <Text style={styles.date}>{item.date}</Text>
+          {badge && (
+            <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+              <Text style={[styles.statusText, { color: badge.text }]}>
+                {badge.label}
+              </Text>
+            </View>
+          )}
+
         </View>
-        <Text style={styles.price}>Rp {price}</Text>
+
+        <View style={styles.cardBody}>
+          <View style={styles.row}>
+            <Ionicons
+              name="calendar-outline"
+              size={16}
+              color={COLORS.textMuted}
+            />
+            <Text style={styles.date}>{item.date}</Text>
+          </View>
+
+          <Text style={styles.price}>Rp {price}</Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
-// ============================================================================
-// MAIN SCREEN
-// ============================================================================
+
+//TAMPILAN UTAMA
 export default function ActivityScreen() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>(TAB_OPTIONS.ACTIVE);
@@ -196,6 +217,7 @@ export default function ActivityScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const router = useRouter();
   const url = `${API_URL}/history/${user?.id}`;
 
   const fetchHistory = useCallback(async () => {
@@ -216,9 +238,8 @@ export default function ActivityScreen() {
     fetchHistory();
   }, [fetchHistory]);
 
-  // ========================================================================
-  // FILTER UTAMA (TANPA UBAH BACKEND)
-  // ========================================================================
+
+  // FILTER UTAMA 
   const displayedData = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -247,9 +268,34 @@ export default function ActivityScreen() {
     });
   }, [activeTab, tickets]);
 
-  const renderItem: ListRenderItem<Ticket> = ({ item }) => (
-    <TicketCard item={item} />
-  );
+  const renderItem: ListRenderItem<Ticket> = ({ item }) => {
+    const isActiveTicket =
+      activeTab === TAB_OPTIONS.ACTIVE &&
+      item.original_status === "paid";
+
+    return (
+      <TicketCard
+        item={item}
+        isHistory={activeTab === TAB_OPTIONS.HISTORY}
+        onPress={
+          isActiveTicket
+            ? () =>
+              router.push({
+                pathname: "/tiket/[id]",
+                params: {
+                  id: item.id.toString(),
+                  spot: item.spot,
+                  date: item.date,
+                  price: item.price,
+                  status: item.original_status,
+                },
+              })
+            : undefined
+        }
+      />
+    );
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -286,9 +332,7 @@ export default function ActivityScreen() {
   );
 }
 
-// ============================================================================
 // STYLES
-// ============================================================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   headerTitle: {
@@ -334,18 +378,39 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
-  statusText: { fontSize: 12, fontWeight: "700" },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "700"
+  },
 
   cardBody: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  row: { flexDirection: "row", alignItems: "center", gap: 6 },
-  date: { color: COLORS.textMuted },
-  price: { fontWeight: "bold", color: COLORS.accent },
-
-  empty: { alignItems: "center", marginTop: 60 },
-  emptyText: { color: COLORS.textMuted, marginTop: 10 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  date: {
+    color: COLORS.textMuted
+  },
+  price: {
+    fontWeight: "bold",
+    color: COLORS.accent
+  },
+  empty: {
+    alignItems: "center",
+    marginTop: 60
+  },
+  emptyText: {
+    color: COLORS.textMuted,
+    marginTop: 10
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
 });

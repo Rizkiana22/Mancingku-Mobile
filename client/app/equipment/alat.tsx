@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { API_URL } from "@env";
-import { GearService } from "@/service/api";
+import { fishingGearService } from "@/service/api";
 
 /**
  * Interface FishingGear
@@ -37,7 +37,7 @@ export default function PerlengkapanScreen() {
 
   const fetchGears = async () => {
     try {
-      const response = await GearService.getAll();
+      const response = await fishingGearService.getAll();
       if (response.data?.data) {
         setGears(response.data.data);
       } else {

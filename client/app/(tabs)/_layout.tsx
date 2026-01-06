@@ -41,8 +41,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: COLORS.inactive,
 
         tabBarStyle: {
-          paddingBottom: insets.bottom,   // 🔥 ini baru kepakai
-          height: 60 + insets.bottom,     // 🔥 aman dari tombol Android
+          paddingBottom: insets.bottom,   
+          height: 60 + insets.bottom,   
           backgroundColor: COLORS.tabBarBg,
           borderTopWidth: 0,
         },
@@ -58,21 +58,17 @@ export default function TabLayout() {
       }}
     >
 
-      {/* PENTING: Properti 'name' harus sesuai dengan nama file di folder app/(tabs)/
-         Contoh: name="beranda" -> akan me-load file app/(tabs)/beranda.tsx
-      */}
-
-      {/* 1. BERANDA (Home) */}
+      {/* BERANDA*/}
       <Tabs.Screen
         name="beranda"
         options={{
           title: "Beranda",
-          headerShown: false, // Header disembunyikan karena biasanya Halaman Depan punya desain custom sendiri
+          headerShown: false, 
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
         }}
       />
 
-      {/* 2. SPOT (Peta/Lokasi) */}
+      {/* SPOT / TEMPAT PEMANCINGAN*/}
       <Tabs.Screen
         name="spot"
         options={{
@@ -82,7 +78,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 3. PERLENGKAPAN (Equipment) */}
+      {/* PERLENGKAPAN */}
       <Tabs.Screen
         name="perlengkapan"
         options={{
@@ -95,7 +91,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 4. AKTIVITAS (Tiket/History) */}
+      {/* 4. AKTIVITAS*/}
       <Tabs.Screen
         name="aktivitas"
         options={{
@@ -105,19 +101,14 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 5. PROFILE (Akun Saya) */}
+      {/* PROFIL*/}
       <Tabs.Screen
         name="profile"
         options={{
           title: "Akun",
           headerShown: false, // Header default disembunyikan, pakai custom header di profile.tsx
           tabBarIcon: ({ color }) => <TabBarIcon name="person" color={color} />,
-
-          // ⚠️ PERHATIAN: 'href: null'
-          // Baris ini akan MENYEMBUNYIKAN tombol Profile dari Tab Bar bawah.
-          // Jika Anda ingin tombol Profile MUNCUL, hapus baris 'href: null' ini.
-          // Jika Anda memang sengaja menyembunyikannya (misal: diakses dari tombol lain), biarkan saja.
-          href: null,
+          href: null, //sembunyikan
         }}
       />
     </Tabs>

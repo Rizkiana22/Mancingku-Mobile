@@ -25,14 +25,14 @@ const ReviewModel = {
             (user_id, spot_id, rating, comment, created_at)
             VALUES (?, ?, ?, ?, NOW())
         `;
-        
+
         const [result] = await db.execute(sql, [
             data.user_id,
             data.spot_id,
             data.rating,
             data.comment
         ]);
-        
+
         return result;
     },
 
@@ -49,14 +49,18 @@ const ReviewModel = {
     getBySpot: async (spotId) => {
         const sql = `
             SELECT 
-                reviews.*, 
-                SUBSTRING_INDEX(users.email, '@', 1) AS user_name
-            FROM reviews
-            JOIN users ON reviews.user_id = users.id
-            WHERE reviews.spot_id = ?
-            ORDER BY reviews.created_at DESC
+            reviews.*,
+            CASE
+                WHEN users.name IS NOT NULL AND users.name != ''
+                    THEN users.name
+                ELSE SUBSTRING_INDEX(users.email, '@', 1)
+            END AS user_name
+        FROM reviews
+        JOIN users ON reviews.user_id = users.id
+        WHERE reviews.spot_id = ?
+        ORDER BY reviews.created_at DESC
         `;
-        
+
         const [rows] = await db.execute(sql, [spotId]);
         return rows;
     },
@@ -71,9 +75,9 @@ const ReviewModel = {
             FROM reviews 
             WHERE spot_id = ?
         `;
-        
+
         const [rows] = await db.execute(sql, [spot_id]);
-        
+
         // rows[0].avg_rating berisi nilai float atau null
         return rows[0].avg_rating;
     }

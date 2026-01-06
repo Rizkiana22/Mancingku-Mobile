@@ -7,8 +7,11 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -66,8 +69,8 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* ================= TOP BAR ================= */}
+    <View style={styles.container}>
+      {/* ================= TOP BAR (Di Luar KAV) ================= */}
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={30} color={COLORS.white} />
@@ -79,54 +82,67 @@ export default function Login() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* ================= CONTENT ================= */}
-      <View style={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Mancingku 🎣</Text>
-          <Text style={styles.subtitle}>
-            Masuk untuk mulai booking spot
-          </Text>
-
-          <TextInput
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={styles.input}
-          />
-
-          <TextInput
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Masuk</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ marginTop: 20 }}
-            onPress={() => router.push("/auth/register")}
-          >
-            <Text style={styles.registerText}>
-              Belum punya akun? <Text style={{ fontWeight: "bold" }}>Daftar</Text>
+      {/* ================= KEYBOARD HANDLING ================= */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        {/* ScrollView biar bisa discroll kalau layar kekecilan */}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled" // Biar tombol bisa diklik langsung
+        >
+          
+          <View style={styles.card}>
+            <Text style={styles.title}>Mancingku 🎣</Text>
+            <Text style={styles.subtitle}>
+              Masuk untuk mulai booking spot
             </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </SafeAreaView>
+
+            <TextInput
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={styles.input}
+            />
+
+            <TextInput
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+            />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Masuk</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ marginTop: 20 }}
+              onPress={() => router.push("/auth/register")}
+            >
+              <Text style={styles.registerText}>
+                Belum punya akun? <Text style={{ fontWeight: "bold" }}>Daftar</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -148,6 +164,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     backgroundColor: "#014b69",
+    zIndex: 10,
   },
   topTitle: {
     fontSize: 20,
@@ -155,8 +172,9 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 
-  content: {
-    flex: 1,
+  // Style untuk ScrollView biar kontennya di tengah vertikal
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     padding: 20,
   },
@@ -166,6 +184,10 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 16,
     elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   title: {
     fontSize: 28,

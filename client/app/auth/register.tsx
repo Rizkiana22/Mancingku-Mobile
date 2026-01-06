@@ -7,13 +7,16 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthService } from "@/service/api";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Konstanta warna (konsisten sama Login)
+// Konstanta warna
 const COLORS = {
   primary: "#014b69",
   white: "#ffffff",
@@ -24,7 +27,7 @@ const COLORS = {
 
 export default function Register() {
   const router = useRouter();
-    const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +35,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    // 1. Validasi input
     if (!email || !password || !confirmPassword) {
       Alert.alert("Error", "Semua field wajib diisi!");
       return;
@@ -46,116 +48,121 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // 2. Panggil API register
       const response = await AuthService.register({
         email,
         password,
       });
 
-      const { data } = response;
-      console.log("REGISTER SUCCESS:", data);
+      console.log("REGISTER SUCCESS:", response.data);
 
-      Alert.alert("Registrasi berhasil, silakan login", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/auth/login"),
-        },
-      ]);
+      Alert.alert(
+        "Registrasi Berhasil",
+        "Silakan login",
+        [{ text: "OK", onPress: () => router.replace("/auth/login") }]
+      );
     } catch (error: any) {
       console.error("REGISTER ERROR:", error);
-
-      if (error.response) {
-        Alert.alert("Gagal", error.response.data.message || "Registrasi gagal");
-      } else if (error.request) {
-        Alert.alert("Koneksi Error", "Tidak dapat terhubung ke server.");
-      } else {
-        Alert.alert("Error", "Terjadi kesalahan sistem.");
+      let messageText = "Registrasi gagal";
+      if (error.response?.data?.message) {
+        const msg = error.response.data.message;
+        messageText = Array.isArray(msg) ? msg.join("\n") : typeof msg === "object" ? Object.values(msg).flat().join("\n") : msg;
       }
+      Alert.alert("Gagal", messageText);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
   return (
-  <SafeAreaView style={styles.container}>
-    {/* ===== TOP BAR ===== */}
-    <View style={[styles.topBar, { paddingTop: insets.top }]}>
-      <TouchableOpacity onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={30} color={COLORS.white} />
-      </TouchableOpacity>
-
-      <Text style={styles.topTitle}>Daftar</Text>
-      <View style={{ width: 24 }} />
-    </View>
-
-    {/* ===== CONTENT (SAMA KAYA LOGIN) ===== */}
-    <View style={styles.content}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Daftar Akun</Text>
-        <Text style={styles.subtitle}>
-          Buat akun untuk mulai booking spot
-        </Text>
-
-        <TextInput
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={styles.input}
-        />
-
-        <TextInput
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={styles.input}
-        />
-
-        <TextInput
-          placeholder="Konfirmasi Password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          style={styles.input}
-        />
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Daftar</Text>
-          )}
+    <View style={styles.container}>
+      {/* 1. TOP BAR (DI LUAR KeyboardAvoidingView) */}
+      <View style={[styles.topBar, { paddingTop: insets.top }]}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={30} color={COLORS.white} />
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{ marginTop: 20 }}
-          onPress={() => router.replace("/auth/login")}
-        >
-          <Text style={{ color: COLORS.primary, textAlign: "center" }}>
-            Sudah punya akun? <Text style={{ fontWeight: "bold" }}>Masuk</Text>
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.topTitle}>Daftar</Text>
+        <View style={{ width: 24 }} />
       </View>
-    </View>
-  </SafeAreaView>
-);
 
+      {/* 2. WRAPPER ANTI KETUTUP KEYBOARD */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        {/* 3. SCROLL VIEW (Penting biar form bisa digulir kalau HP kecil) */}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled" // Biar bisa klik tombol walau keyboard nyala
+        >
+          
+          <View style={styles.card}>
+            <Text style={styles.title}>Daftar Akun</Text>
+            <Text style={styles.subtitle}>
+              Buat akun untuk mulai booking spot
+            </Text>
+
+            <TextInput
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={styles.input}
+            />
+
+            <TextInput
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+            />
+
+            <TextInput
+              placeholder="Konfirmasi Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              style={styles.input}
+            />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Daftar</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ marginTop: 20 }}
+              onPress={() => router.replace("/auth/login")}
+            >
+              <Text style={{ color: COLORS.primary, textAlign: "center" }}>
+                Sudah punya akun? <Text style={{ fontWeight: "bold" }}>Masuk</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
 }
 
-// Styles (konsisten sama Login)
 const styles = StyleSheet.create({
   container: {
-  flex: 1,
-  backgroundColor: COLORS.background,
-},
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
 
-   topBar: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -164,6 +171,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     backgroundColor: "#014b69",
+    zIndex: 10,
   },
   topTitle: {
     fontSize: 20,
@@ -171,11 +179,12 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 
-  content: {
-  flex: 1,
-  justifyContent: "center",
-  padding: 20,
-},
+  // Style untuk ScrollView biar kontennya di tengah
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
 
   card: {
     backgroundColor: COLORS.white,

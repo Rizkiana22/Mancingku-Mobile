@@ -13,13 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+
 // AuthContext: Sumber state global autentikasi (user & loading)
 // Menghindari prop drilling dan duplikasi logic auth di setiap screen
 import { useAuth } from "@/context/AuthContext";
 
 // Service Layer: Abstraksi API call (Booking & Session)
 // Memisahkan UI concern dari data-fetching & business logic
-import { BookingService, SessionService } from "@/service/api";
+import { BookingService, SessionService, GearService } from "@/service/api";
 
 // AsyncStorage: Penyimpanan token lokal (persistent)
 // Digunakan untuk otorisasi request booking
@@ -56,8 +57,6 @@ export default function BookingSession() {
 
   const [sessions, setSessions] = useState<any[]>([]);
 
-  const params = useLocalSearchParams();
-
   // ==========================================================================
   // STATE MANAGEMENT
   // ==========================================================================
@@ -78,6 +77,13 @@ export default function BookingSession() {
   // Control visibilitas DatePicker
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [gears, setGears] = useState<any[]>([]);
+  const [selectedGears, setSelectedGears] = useState<
+    { gear_id: number; quantity: number }[]
+  >([]);
+
+
+
   // ==========================================================================
   // HELPER
   // ==========================================================================
@@ -86,6 +92,47 @@ export default function BookingSession() {
   const formatDate = (d: Date) =>
     d.toISOString().split("T")[0]; // YYYY-MM-DD
 
+  const [loadingGear, setLoadingGear] = useState(true);
+
+  const safeNumber = (value: any) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+
+  const updateGearQuantity = (gear: any, delta: number) => {
+    setSelectedGears(prev => {
+      const existing = prev.find(g => g.gear_id === gear.id);
+
+      if (delta > 0 && gear.stock <= (existing?.quantity || 0)) {
+        return prev;
+      }
+
+      if (!existing && delta > 0) {
+        return [...prev, {
+          gear_id: gear.id,
+          quantity: 1,
+        }];
+      }
+
+      if (existing) {
+        const newQty = existing.quantity + delta;
+
+        if (newQty <= 0) {
+          return prev.filter(g => g.gear_id !== gear.id);
+        }
+
+        return prev.map(g =>
+          g.gear_id === gear.id
+            ? { ...g, quantity: newQty }
+            : g
+        );
+      }
+
+      return prev;
+    });
+  };
+
   // ==========================================================================
   // EFFECT: FETCH SESSION DETAIL
   // Dipanggil ulang setiap:
@@ -93,22 +140,36 @@ export default function BookingSession() {
   // - tanggal berubah (untuk cek ketersediaan kursi per tanggal)
   // ==========================================================================
   useEffect(() => {
+    setSelectedGears([]);
+  }, [spotId]);
+
+  useEffect(() => {
     if (!spotId) return;
 
-    setLoadingSession(true);
-
-    SessionService.getBySpot(Number(spotId))
+    setLoadingGear(true);
+    GearService.getBySpot(spotId)
       .then(res => {
-        setSessions(res.data);
+        const normalized = res.data.map((g: any) => ({
+          ...g,
+          price: Number(g.price),
+          stock: Number(g.stock),
+        }));
+        setGears(normalized);
       })
-      .catch(err => {
+      .catch(() => Alert.alert("Error", "Gagal memuat peralatan"))
+      .finally(() => setLoadingGear(false));
+
+
+
+    setLoadingSession(true);
+    SessionService.getBySpot(Number(spotId))
+      .then(res => setSessions(res.data))
+      .catch(() => {
         Alert.alert("Error", "Gagal memuat sesi");
-        console.error(err);
       })
-      .finally(() => {
-        setLoadingSession(false);
-      });
+      .finally(() => setLoadingSession(false));
   }, [spotId]);
+
 
   // ==========================================================================
   // AUTH GUARD
@@ -126,55 +187,60 @@ export default function BookingSession() {
   // SUBMIT HANDLER
   // ==========================================================================
   const submit = async () => {
-  // ================= VALIDASI =================
-  if (!date || Number(people) <= 0) {
-    Alert.alert("Error", "Data tidak valid");
-    return;
-  }
-
-  if (!selectedSession) {
-    Alert.alert("Error", "Pilih sesi terlebih dahulu");
-    return;
-  }
-
-  if (selectedSession.seats_left < Number(people)) {
-    Alert.alert("Penuh", "Kursi tidak mencukupi");
-    return;
-  }
-
-  try {
-    setSubmitting(true);
-
-    const token = await AsyncStorage.getItem("token");
-    if (!token) {
-      router.replace("/auth/login");
+    // ================= VALIDASI =================
+    if (!date || Number(people) <= 0) {
+      Alert.alert("Error", "Data tidak valid");
       return;
     }
 
-    // ================= CREATE BOOKING =================
-    const res = await BookingService.create(
-      {
-        session_id: selectedSession.id,
-        booking_date: date,
-        total_people: Number(people),
-      },
-      token
-    );
+    if (!selectedSession) {
+      Alert.alert("Error", "Pilih sesi terlebih dahulu");
+      return;
+    }
 
-    const bookingId = res.data.bookingId; 
+    if (selectedSession.seats_left < Number(people)) {
+      Alert.alert("Penuh", "Kursi tidak mencukupi");
+      return;
+    }
 
-    // ================= KE PAYMENT =================
-   router.replace(`/payment?bookingId=${bookingId}`);
+    try {
+      setSubmitting(true);
 
-  } catch (err: any) {
-    Alert.alert(
-      "Gagal",
-      err.response?.data?.message || "Booking gagal"
-    );
-  } finally {
-    setSubmitting(false);
-  }
-};
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        router.replace("/auth/login");
+        return;
+      }
+
+      // ================= CREATE BOOKING =================
+      const res = await BookingService.create(
+        {
+          session_id: selectedSession.id,
+          booking_date: date,
+          total_people: Number(people),
+          gears: selectedGears.map(g => ({
+            gear_id: g.gear_id,
+            quantity: g.quantity,
+          })),
+        },
+        token
+      );
+
+
+      const bookingId = res.data.bookingId;
+
+      // ================= KE PAYMENT =================
+      router.replace(`/payment?bookingId=${bookingId}`);
+
+    } catch (err: any) {
+      Alert.alert(
+        "Gagal",
+        err.response?.data?.message || "Booking gagal"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // ==========================================================================
   // DERIVED STATE
@@ -185,17 +251,31 @@ export default function BookingSession() {
   // - session tidak valid
   // - kursi habis
   const disableSubmit =
-  submitting ||
-  loadingSession ||
-  !selectedSession ||
-  selectedSession.seats_left <= 0;
+    submitting ||
+    loadingSession ||
+    loadingGear ||
+    !selectedSession ||
+    selectedSession.seats_left <= 0;
 
   // Total Harga
   // - Total harga dari sesi * jumlah orang
+  const gearTotal = selectedGears.reduce((sum, g) => {
+    const gear = gears.find(x => x.id === g.gear_id);
+    if (!gear) return sum;
+
+    const price = Number(gear.price);
+    if (!Number.isFinite(price)) return sum;
+
+    return sum + price * g.quantity;
+  }, 0);
+
+
+
   const totalPrice =
-  selectedSession && Number(people) > 0
-    ? selectedSession.price * Number(people)
-    : 0;
+    selectedSession && Number(people) > 0
+      ? selectedSession.price * Number(people) + gearTotal
+      : 0;
+
 
   // ==========================================================================
   // UI
@@ -215,12 +295,12 @@ export default function BookingSession() {
           <>
 
             {/* Back */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={22} color={COLORS.white} />
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={22} color={COLORS.white} />
+            </TouchableOpacity>
 
             {/* ============================================================ */}
             {/* DETAIL SESI (HANYA JIKA DIPILIH) */}
@@ -314,55 +394,129 @@ export default function BookingSession() {
                 keyboardType="numeric"
               />
             </View>
+            <Text style={styles.sectionTitle}>Pilih Sesi</Text>
+            {sessions.map((s) => {
+              const isSelected = selectedSession?.id === s.id;
+              const isDisabled = s.seats_left <= 0;
 
-              <Text style={styles.sectionTitle}>Pilih Sesi</Text>
-              {sessions.map((s) => {
-                const isSelected = selectedSession?.id === s.id;
-                const isDisabled = s.seats_left <= 0;
+              return (
+                <TouchableOpacity
+                  key={s.id}
+                  activeOpacity={0.8}
+                  disabled={isDisabled}
+                  onPress={() => setSelectedSession(s)}
+                  style={[
+                    styles.sessionCard,
+                    isSelected && styles.sessionCardSelected,
+                    isDisabled && styles.sessionCardDisabled,
+                  ]}
+                >
+                  <View>
+                    <Text style={styles.sessionName}>{s.session_name}</Text>
+                    <Text style={styles.sessionTime}>
+                      {s.start_time} - {s.end_time}
+                    </Text>
+                    <Text style={styles.sessionPrice}>
+                      Rp {Number(s.price).toLocaleString("id-ID")}
+                    </Text>
+                    <Text style={styles.sessionSeat}>
+                      Sisa kursi: {s.seats_left}
+                    </Text>
+                  </View>
 
-                return (
-                  <TouchableOpacity
-                    key={s.id}
-                    activeOpacity={0.8}
-                    disabled={isDisabled}
-                    onPress={() => setSelectedSession(s)}
-                    style={[
-                      styles.sessionCard,
-                      isSelected && styles.sessionCardSelected,
-                      isDisabled && styles.sessionCardDisabled,
-                    ]}
-                  >
-                    <View>
-                      <Text style={styles.sessionName}>{s.session_name}</Text>
-                      <Text style={styles.sessionTime}>
-                        {s.start_time} - {s.end_time}
-                      </Text>
-                      <Text style={styles.sessionPrice}>
-                        Rp {Number(s.price).toLocaleString("id-ID")}
-                      </Text>
-                      <Text style={styles.sessionSeat}>
-                        Sisa kursi: {s.seats_left}
-                      </Text>
-                    </View>
+                  {isSelected && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={24}
+                      color={COLORS.accent}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
 
-                    {isSelected && (
+            {/* ============================================================ */}
+            {/* FORM SEWA PERALATAN */}
+            {/* ============================================================ */}
+            <Text style={styles.sectionTitle}>Pilih Peralatan Untuk Disewa</Text>
+            {loadingGear && (
+              <ActivityIndicator
+                size="small"
+                color={COLORS.primary}
+                style={{ marginVertical: 8 }}
+              />
+            )}
+
+            {gears.map(gear => {
+              const selected = selectedGears.find(
+                g => g.gear_id === gear.id
+              );
+
+              return (
+                <View key={gear.id} style={[
+                  styles.gearCard,
+                  selected && styles.gearCardSelected,
+                  gear.stock === 0 && styles.gearCardDisabled,
+                ]}>
+
+                  {/* Info */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.gearName}>{gear.name}</Text>
+
+                    <Text style={styles.gearPrice}>
+                      Rp {safeNumber(gear.price).toLocaleString("id-ID")}
+                    </Text>
+
+                    <Text style={styles.gearStock}>
+                      Stok: {gear.stock}
+                    </Text>
+                  </View>
+
+                  {/* Quantity Control */}
+                  <View style={styles.qtyControl}>
+                    <TouchableOpacity
+                      onPress={() => updateGearQuantity(gear, -1)}
+                      disabled={!selected}
+                    >
                       <Ionicons
-                        name="checkmark-circle"
-                        size={24}
-                        color={COLORS.accent}
+                        name="remove-circle"
+                        size={26}
+                        color={selected ? COLORS.primary : "#ccc"}
                       />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+                    </TouchableOpacity>
 
-              <View style={styles.totalRow}>
-  <Text style={styles.totalLabel}>Total Harga</Text>
-  <Text style={styles.totalValue}>
-    Rp {totalPrice.toLocaleString("id-ID")}
-  </Text>
-</View>
+                    <Text style={styles.qtyText}>
+                      {selected?.quantity || 0}
+                    </Text>
 
+                    <TouchableOpacity
+                      onPress={() => updateGearQuantity(gear, 1)}
+                      disabled={gear.stock <= (selected?.quantity || 0)}
+                    >
+                      <Ionicons
+                        name="add-circle"
+                        size={26}
+                        color={
+                          gear.stock > (selected?.quantity || 0)
+                            ? COLORS.accent
+                            : "#ccc"
+                        }
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+
+
+
+            {/* Total Harga */}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total Harga</Text>
+              <Text style={styles.totalValue}>
+                Rp {totalPrice.toLocaleString("id-ID")}
+              </Text>
+            </View>
 
             {/* ============================================================ */}
             {/* CTA */}
@@ -397,7 +551,7 @@ const styles = StyleSheet.create({
 
   container: {
     padding: 20,
-    paddingTop:90,
+    paddingTop: 90,
   },
 
   center: {
@@ -417,7 +571,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginBottom: 16,
   },
-backButton: {
+  backButton: {
     position: "absolute",
     top: 12,
     left: 16,
@@ -508,51 +662,88 @@ backButton: {
     padding: 12,
     marginBottom: 12,
   },
-
-  bookButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-  },
-
-  bookButtonDisabled: {
-    backgroundColor: "#ccc",
-  },
-
-  bookButtonText: {
-    color: COLORS.white,
-    fontWeight: "600",
-  },
-
+  
   sessionCardSelected: {
+    borderColor: COLORS.accent,
+    backgroundColor: "#fff7e6",
+  },
+
+  sessionCardDisabled: {
+    opacity: 0.5,
+  },
+
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+
+  totalLabel: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+
+  totalValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.accent,
+  },
+
+  gearCard: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  backgroundColor: COLORS.white,
+  borderRadius: 14,
+  padding: 14,
+  marginBottom: 12,
+  borderWidth: 1,
+  borderColor: "#eee",
+},
+
+gearCardSelected: {
   borderColor: COLORS.accent,
   backgroundColor: "#fff7e6",
 },
 
-sessionCardDisabled: {
+gearCardDisabled: {
   opacity: 0.5,
 },
 
-totalRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginTop: 12,
-  paddingTop: 12,
-  borderTopWidth: 1,
-  borderTopColor: "#eee",
+gearName: {
+  fontSize: 15,
+  fontWeight: "600",
+  color: COLORS.textMain,
 },
 
-totalLabel: {
+gearPrice: {
+  marginTop: 4,
   fontSize: 14,
+  fontWeight: "bold",
+  color: COLORS.accent,
+},
+
+gearStock: {
+  marginTop: 2,
+  fontSize: 12,
   color: COLORS.textMuted,
 },
 
-totalValue: {
+qtyControl: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+qtyText: {
+  marginHorizontal: 10,
   fontSize: 16,
   fontWeight: "bold",
-  color: COLORS.accent,
+  minWidth: 20,
+  textAlign: "center",
 },
 
 });
